@@ -13,6 +13,34 @@ from sys import argv
 
 import uvicorn
 
+import requests
+
+import json
+
+from sqlalchemy.ext.declarative import DeclarativeMeta
+
+import threading
+
+import time
+
+class AlchemyEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj.__class__, DeclarativeMeta):
+            # an SQLAlchemy class
+            fields = {}
+            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
+                data = obj.__getattribute__(field)
+                try:
+                    json.dumps(data) # this will fail on non-encodable values, like other classes
+                    fields[field] = data
+                except TypeError:
+                    fields[field] = None
+            # a json-encodable dict
+            return fields
+
+        return json.JSONEncoder.default(self, obj)
+
 
 
 
@@ -50,6 +78,9 @@ async def location():
 async def startup():
     global db
     db = DB_Service()
+    global th
+    th = threading.Thread(target=sync_thread)
+    th.start()
 
 
 @app.get("/")
@@ -118,5 +149,33 @@ class DB_Service():
             return "product already exists"
         
 
+
+def get_port():
+    p = requests.get(f'http://localhost:9000/port?seller={argv[1]}')
+    return int(p.text)
+
+def sync_main():
+    global db
+    ps = db.get_products()
+    pa = json.dumps(ps, cls=AlchemyEncoder)
+
+    r = requests.post(f"http://localhost:9000/products?seller={argv[1]}", data=pa)
+    
+
+    return r.text
+
+
+def sync_thread():
+    try:
+        while True:
+            sync_main()
+            time.sleep(10)
+    except KeyboardInterrupt:
+        return
+    
+
+
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, log_level="info", reload=True)
+    port = get_port()
+    uvicorn.run("seller:app", host="0.0.0.0", port=port, log_level="info", reload=True)
+    

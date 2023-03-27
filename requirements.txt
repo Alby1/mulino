@@ -2,3 +2,4 @@ uvicorn
 fastapi
 sqlalchemy
 sqlalchemy_utils
+requests
