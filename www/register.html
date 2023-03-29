@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="api.js"></script>
+    <script src="user.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <title>Crea un account</title>
+</head>
+<body>
+    <div class="products-title">
+        <h1>Crea un account</h1>
+    </div>
+    <div class="login-main">
+        <div class="login-row">
+            <h2 id="alert" class="alert"></h2>
+        </div>
+        <div class="login-row">
+            <label for="user">Username</label>
+            <input type="text" id="user">
+        </div>
+        <div class="login-row">
+            <label for="pass">Password</label>
+            <input type="password" id="pass">
+        </div>
+        <div class="login-row">
+            <label for="passconf">Confirm Password</label>
+            <input type="password" id="passconf">
+        </div>
+        <div class="login-row">
+            <input type="button" value="Register" class="login-button" onclick="register()">
+        </div>
+    </div>
+    <script>
+        async function onstart() {
+            let u = document.getElementById("user")
+            u.addEventListener("input", async function(e) {
+                let can = await net_already_exists(e.target.value)
+                console.log(can)
+            })
+        }
+        onstart()
+    </script>
+</body>
+</html>

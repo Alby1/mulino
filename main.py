@@ -1,19 +1,16 @@
 import uvicorn
 
-from fastapi import FastAPI, status, Response, Body, Request
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, desc
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
-from typing import Annotated
 
 from pydantic import BaseModel
 

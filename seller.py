@@ -3,10 +3,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean
+from pydantic import BaseModel
+
+from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.dialects.mysql import INTEGER
-from sqlalchemy.orm import sessionmaker, declarative_base, relationship
+from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
@@ -46,6 +48,15 @@ class AlchemyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+class API():
+    class Login(BaseModel):
+        user: str
+        password: str
+
+    class Token(BaseModel):
+        token: str
+
+
 
 
 app = FastAPI()
@@ -56,7 +67,7 @@ app.add_middleware(CORSMiddleware, allow_origins=origins)
 
 
 @app.get("/api/products/")
-async def api_products(response: Response, id : int = None):
+async def api_products(response: Response, id : int = None): # type: ignore
     global db
     if(id is None):
         return db.get_products()
@@ -65,7 +76,7 @@ async def api_products(response: Response, id : int = None):
 
 
 @app.get("/api/products/add")
-async def api_products_add(nome : str, prezzo: int, response : Response, quantita: int = None):
+async def api_products_add(nome : str, prezzo: int, response : Response, quantita: int = None): # type: ignore
 
     if(nome is None or prezzo is None):
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -77,24 +88,39 @@ async def api_products_add(nome : str, prezzo: int, response : Response, quantit
 async def location():
     return argv[1]
 
-@app.get("/api/users/login")
-def api_users_login(user: str, password: str):
+@app.post("/api/users/login")
+def api_users_login(login: API.Login):
+    user = login.user
+    password = login.password
+    print(user)
     if(user is None or password is None): return False
 
     global db
-    lg = db.login(user, password)
+    lg, ad = db.login(user, password)
     if(lg is None):
         return {"status" : "bad"}
-    return {"status" : "ok", "token" : lg}
+    return {"status" : "ok", "token" : lg, "admin" : ad}
 
-@app.get("/api/users/check_session")
-def api_users_check_session(token: str = None):
+
+@app.post("/api/users/check_session")
+def api_users_check_session(token: API.Token):
+    token = token.token
     if(token is None): return {"status" : "no token"}
     
     global db
     if(db.check_session(token)):
         return {"status" : "ok"}
     return {"status" : "bad"}
+
+@app.post("/api/users/register")
+def api_users_register(register : API.Login):
+    global db
+    db.add_user(register.user, register.password, False)
+
+@app.get("/api/users/already_exists")
+def api_users_already_exists(user: str):
+    global db
+    return db.user_exists(user)
 
 
 @app.get("/status")
@@ -198,6 +224,19 @@ class DB_Service():
         i = u.id
         s.close()
         return i
+
+    def user_exists(self, user):
+        s = self.session()
+        ret = False
+        try:
+            u = s.query(self.Utente).filter(self.Utente.user == user)
+            if(u.count() != 0): ret = True
+        except: ret = False
+        try:
+            s.close()
+        except: pass
+
+        return ret
     
     def login(self, user, password):
         s = self.session()
@@ -209,10 +248,16 @@ class DB_Service():
 
         u = w.first()
 
+        if(w.count() == 0):
+            return None
+
+        admin = False
+
         cycles = 1
         while cycles > 0:
             try:
                 u.token = result_str
+                admin = u.admin
 
                 s.commit()
 
@@ -220,15 +265,14 @@ class DB_Service():
             except Exception as e:
                 if(cycles >= 5):
                     print(e)
+                    break
                 cycles += 1
                 time.sleep(0.1 * cycles)
 
         s.close()
 
-        if(w.count() != 0):
-            return result_str
         
-        return None
+        return result_str, admin
     
     def check_session(self, token: str):
         if(token is None): return False

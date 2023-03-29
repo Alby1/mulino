@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,15 +11,28 @@
     <script src="index.js"></script>
     <title>Prodotti</title>
 </head>
+
 <body>
     <div class="products-main">
         <div class="products-title">
-            <h2>Prodotti</h2>
+            <h1>Prodotti</h1>
             <p id="you-are" class="products-title-side"></p>
             <a href="login.html" class="products-login">Login</a>
-            <a id="logout" class="products-login" onclick="logout()">Logout</a>
+            <a href="register.html" class="products-login">Register</a>
+            <a id="logout" class="products-login" onclick="logout()" href="">Logout</a>
+            <a href="admin.html" class="products-login admin-action">Admin</a>
         </div>
-        <table id="table" class="table"></table>
+        <table id="table" class="table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Prezzo</th>
+                    <th>Quantita</th>
+                    <th>Aggiungi al carrello</th>
+                    <th class="admin-action">Modifica</th>
+                </tr>
+            </thead>
+        </table>
     </div>
 
     <script>
@@ -26,11 +40,16 @@
             products()
 
             let active = await checkSession()
-            console.log(active)
-            document.getElementById("you-are").innerHTML = (active ? `You are: ${localStorage.getItem("username")}` : "You are not logged in")
+            document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${localStorage.getItem("username")}` : "You are not logged in")
             document.getElementById("logout").hidden = !active
+
+            let admin = checkAdmin()
+            for (const el of document.getElementsByClassName("admin-action")) {
+                el.hidden = !admin
+            }
         }
         onstart()
     </script>
 </body>
+
 </html>

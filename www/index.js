@@ -3,9 +3,9 @@ async function products() {
 
     const data_titles = ["nome", "prezzo", "quantita"]
 
-    
     let table = document.getElementById("table")
-    let thead = document.createElement("thead")
+    
+/*     let thead = document.createElement("thead")
     
     let tr = document.createElement("tr")
     
@@ -21,7 +21,7 @@ async function products() {
     
     thead.appendChild(tr)
     
-    table.appendChild(thead)
+    table.appendChild(thead) */
 
     let tbody = document.createElement("tbody")
 
