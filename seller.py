@@ -82,9 +82,20 @@ def api_users_login(user: str, password: str):
     if(user is None or password is None): return False
 
     global db
-    if(db.login(user, password)):
+    lg = db.login(user, password)
+    if(lg is None):
+        return {"status" : "bad"}
+    return {"status" : "ok", "token" : lg}
+
+@app.get("/api/users/check_session")
+def api_users_check_session(token: str = None):
+    if(token is None): return {"status" : "no token"}
+    
+    global db
+    if(db.check_session(token)):
         return {"status" : "ok"}
     return {"status" : "bad"}
+
 
 
 @app.on_event("startup")
@@ -123,7 +134,7 @@ class DB_Service():
         user = Column(String(45), unique=True, nullable=False)
         password = Column(String(45), nullable=False)
         admin = Column(Boolean())
-        token = Column(String(20))
+        token = Column(String(20), unique=True)
 
         def __repr__(self):
             return f"{self.user} {self.admin}"
@@ -197,14 +208,35 @@ class DB_Service():
 
         u = w.first()
 
-        u.token = result_str
+        cycles = 1
+        while cycles > 0:
+            try:
+                u.token = result_str
 
-        ret = False
+                s.commit()
+
+                cycles = -1
+            except Exception as e:
+                if(cycles >= 5):
+                    print(e)
+                cycles += 1
+                time.sleep(0.1 * cycles)
+
+        s.close()
 
         if(w.count() != 0):
-            return True
+            return result_str
         
-        return result_str
+        return None
+    
+    def check_session(self, token):
+        s = self.session()
+
+        q = s.query(self.Utente).filter(self.Utente.token == token)
+
+        if(q.count() != 0):
+            return True
+        return False
         
 
 
@@ -234,7 +266,8 @@ def sync_main():
             except Exception as e:
                 # print(e)
                 pass
-    except:
+    except Exception as es:
+        # print(es)
         print("can't sync")
 
 

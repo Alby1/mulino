@@ -5,13 +5,25 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
+    <script src="api.js"></script>
+    <script src="user.js"></script>
     <title>Prodotti</title>
 </head>
 <body>
     <div class="products-main">
-        <h2 class="products-title">Prodotti</h2>
-        <a href="login.html" >Login</a>
+        <div class="products-title">
+            <h2>Prodotti</h2>
+            <p id="you-are" class="products-title-side"></p>
+            <a href="login.html" class="products-login">Login</a>
+            <a id="logout" class="products-login" onclick="logout()">Logout</a>
+        </div>
         <table id="table" class="table"></table>
     </div>
+
+    <script>
+        let active = checkSession()
+        document.getElementById("you-are").innerHTML = `You are: ${(active ? localStorage.getItem("username") : "not logged in")}`
+        document.getElementById("logout").hidden = !active
+    </script>
 </body>
 </html>

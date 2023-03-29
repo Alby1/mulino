@@ -24,3 +24,15 @@ async function net_login(user, password) {
         return data
     })
 }
+
+async function net_check_session(token) {
+    return await fetch(`${window.location.origin}/api/users/check_session?token=${token}`).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(async data => {
+        return (data['status'] == "ok" ? true : false)
+    })
+}

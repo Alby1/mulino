@@ -19,6 +19,8 @@ from pydantic import BaseModel
 
 import json
 
+import requests
+
 class AlchemyEncoder(json.JSONEncoder):
 
     def default(self, obj):
@@ -239,8 +241,15 @@ def fa_p_users_r():
 def index(request: Request):
     global db
     sellers = db.get_sellers()
+    sr = []
+    for s in sellers:
+        try:
+            requests.post(f"http://localhost:{s.port}")
+            sr.append(s)
+        except:
+            pass
     global templates
-    return templates.TemplateResponse("status.html", {"request" : request, "sellers" : sellers})
+    return templates.TemplateResponse("status.html", {"request" : request, "sellers" : sr})
 
 
 app.mount("/static", StaticFiles(directory="www"), name="www")
