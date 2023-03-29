@@ -64,7 +64,7 @@ class DB_Service():
         nome = Column(String(45), nullable=False, unique=True)
         prezzo = Column(INTEGER(unsigned=True), nullable=False)
         quantita = Column(INTEGER(unsigned=True), nullable=False)
-        where = Column(Integer, ForeignKey("venditori.id"), nullable=False)
+        where = Column(Integer, ForeignKey("venditori.id"))
 
         venditore_ = relationship("Seller", back_populates="prodotti_")
 
@@ -74,7 +74,7 @@ class DB_Service():
         user = Column(String(45), unique=True, nullable=False)
         password = Column(String(45), nullable=False)
         admin = Column(Boolean())
-        where = Column(Integer, ForeignKey("venditori.id"), nullable=False)
+        where = Column(Integer, ForeignKey("venditori.id"))
 
         venditore_ = relationship("Seller", back_populates="utenti_")
 
@@ -122,8 +122,8 @@ class DB_Service():
         if(q.count() != 0): return q.filter(self.Seller.nome == seller).first().port
         
         a = s.query(self.Seller).order_by(desc(self.Seller.port))
-        p = 9001
-        print(a.count())
+        p = 9000
+        
         if(a.count() != 0): p = int(a.first().port)
         p += 1
         sl = self.Seller(nome=seller, port = p )
@@ -159,23 +159,31 @@ class DB_Service():
 
         w = s.query(self.Seller).filter(self.Seller.nome == seller).first().id
 
+        i = -1
+
         try:
             q = s.query(self.Utente).filter(self.Utente.where == w).filter(self.Utente.user == p.user)
-            m = q.first()
-            m.user = p.user
-            m.password = p.password
-            m.admin = p.admin
+            if(q.count != 0): 
+                m = q.first()
+                m.user = p.user
+                m.password = p.password
+                m.admin = p.admin
 
-            s.commit()
+                s.commit()
+                i = m.id
+                s.close()
 
         except:
-            ua = self.Utente(user = p.user, password = p.password, admin = p.admin, where = w)
+            try:
+                ua = self.Utente(user = p.user, password = p.password, admin = p.admin, where = w)
 
-            s.add(ua)
-            s.commit()
-            i = ua.id
-            s.close()
-            return i
+                s.add(ua)
+                s.commit()
+                i = ua.id
+                s.close()
+            except: pass
+
+        return i
         
     def get_users(self):
         s = self.session()
@@ -185,7 +193,18 @@ class DB_Service():
         s.close()
 
         return q.all()
+    
+    def add_user(self, username, password, admin = None, where = None):
+        s = self.session()
+
+        u = self.Utente(user = username, password = password, admin = admin, where = where)
         
+        s.add(u)
+        s.commit()
+        i = u.id
+        s.close()
+        return i
+    
 
     def get_sellers(self):
         s = self.session()
@@ -244,7 +263,7 @@ def index(request: Request):
     sr = []
     for s in sellers:
         try:
-            requests.post(f"http://localhost:{s.port}")
+            requests.get(f"http://localhost:{s.port}/status")
             sr.append(s)
         except:
             pass

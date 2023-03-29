@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="api.js"></script>
     <script src="user.js"></script>
+    <script src="index.js"></script>
     <title>Prodotti</title>
 </head>
 <body>
@@ -21,9 +22,15 @@
     </div>
 
     <script>
-        let active = checkSession()
-        document.getElementById("you-are").innerHTML = `You are: ${(active ? localStorage.getItem("username") : "not logged in")}`
-        document.getElementById("logout").hidden = !active
+        async function onstart() {
+            products()
+
+            let active = await checkSession()
+            console.log(active)
+            document.getElementById("you-are").innerHTML = (active ? `You are: ${localStorage.getItem("username")}` : "You are not logged in")
+            document.getElementById("logout").hidden = !active
+        }
+        onstart()
     </script>
 </body>
 </html>

@@ -97,6 +97,10 @@ def api_users_check_session(token: str = None):
     return {"status" : "bad"}
 
 
+@app.get("/status")
+def service_status():
+    return True
+
 
 @app.on_event("startup")
 async def startup():
@@ -111,11 +115,8 @@ async def startup():
 async def index():
     return FileResponse("www/index.html")
 
-app.mount("/", StaticFiles(directory="www"), name="static")
 
-@app.get("/status")
-async def service_status():
-    return True
+app.mount("/", StaticFiles(directory="www"), name="static")
 
 
 class DB_Service():
@@ -229,7 +230,8 @@ class DB_Service():
         
         return None
     
-    def check_session(self, token):
+    def check_session(self, token: str):
+        if(token is None): return False
         s = self.session()
 
         q = s.query(self.Utente).filter(self.Utente.token == token)
