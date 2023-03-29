@@ -1,7 +1,10 @@
-from fastapi import FastAPI, status, Response
+from fastapi import FastAPI, status, Response, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+
+from starlette.requests import Request as StarletteRequest
 
 from pydantic import BaseModel
 
@@ -92,7 +95,6 @@ async def location():
 def api_users_login(login: API.Login):
     user = login.user
     password = login.password
-    print(user)
     if(user is None or password is None): return False
 
     global db
@@ -135,6 +137,8 @@ async def startup():
     global th
     th = threading.Thread(target=sync_thread)
     th.start()
+    global templates
+    templates = Jinja2Templates(directory="www")
 
 
 @app.get("/")
@@ -142,7 +146,15 @@ async def index():
     return FileResponse("www/index.html")
 
 
-app.mount("/", StaticFiles(directory="www"), name="static")
+@app.get("/{path:path}", response_class=FileResponse)
+async def index_(request: Request):
+    global templates
+    path = request.url.path.replace("/", "", 1)
+    if(path == "api.js"):
+        return templates.TemplateResponse(path, {"request" : request, "venditore" : argv[1]})
+    return FileResponse(f"www/{path}")
+
+
 
 
 class DB_Service():

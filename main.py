@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, desc
 from sqlalchemy_utils import database_exists, create_database
@@ -11,12 +12,17 @@ from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
+import requests
 
 from pydantic import BaseModel
 
 import json
 
-import requests
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import StreamingResponse
+from starlette.background import BackgroundTask
+
+import httpx
 
 class AlchemyEncoder(json.JSONEncoder):
 
@@ -51,6 +57,9 @@ class API():
         password: str
         admin: bool
         registry: str | None
+
+    
+            
 
 class DB_Service():
     Base = declarative_base()
@@ -116,7 +125,10 @@ class DB_Service():
 
         q = s.query(self.Seller)
 
-        if(q.count() != 0): return q.filter(self.Seller.nome == seller).first().port
+        if(q.count() != 0): 
+            q = q.filter(self.Seller.nome == seller)
+            if(q.count() != 0):
+                return q.first().port
         
         a = s.query(self.Seller).order_by(desc(self.Seller.port))
         p = 9000
@@ -203,7 +215,7 @@ class DB_Service():
         return i
     
 
-    def get_sellers(self):
+    def get_sellers(self) -> list[Seller]:
         s = self.session()
 
         ss = s.query(self.Seller)
@@ -223,6 +235,9 @@ async def startup():
     db = DB_Service()
     global templates
     templates = Jinja2Templates(directory="www")
+
+    global clients
+    clients = []
 
 
 @app.get("/port")
@@ -255,20 +270,77 @@ def fa_p_users_r():
 
 @app.get("/")
 def index(request: Request):
-    global db
-    sellers = db.get_sellers()
-    sr = []
-    for s in sellers:
-        try:
-            requests.get(f"http://localhost:{s.port}/status")
-            sr.append(s)
-        except:
-            pass
     global templates
-    return templates.TemplateResponse("status.html", {"request" : request, "sellers" : sr})
+
+    active_sellers = []
+    for sl in db.get_sellers():
+        try:
+            r = requests.get(f"http://localhost:{sl.port}/status")
+            if(r is None): continue
+            active_sellers.append(sl)
+        except:
+            continue
+    
+    return templates.TemplateResponse("status.html", {"request" : request, "sellers" : active_sellers})
 
 
 app.mount("/static", StaticFiles(directory="www"), name="www")
+
+
+class SellerClient():
+    nome : str
+    port : int
+    client : httpx.AsyncClient = None
+
+    def __init__(self, nome, port, client = None) -> None:
+        self.nome = nome
+        self.port = port
+        self.client = client
+
+    def __repr__(self) -> str:
+        return f"{self.nome} @ {self.port}"
+
+
+async def _reverse_proxy(request: StarletteRequest):
+    global clients
+    global db
+    nome = request.url.path.split("/")[1]
+    path = request.url.path.replace(f"/{nome}", "", 1)
+
+
+    url = httpx.URL(path=path,
+                    query=request.url.query.encode("utf-8"))
+
+    if(path.__len__() == 0):
+        return RedirectResponse(request.url.__str__() + "/")
+
+    client = None
+    for c in clients:
+        if(c.nome == nome):
+            client = c.client
+
+    
+    if(client is None):
+        port = db.get_port(nome)
+        client = httpx.AsyncClient(base_url=f"http://localhost:{port}/")
+        clients.append(SellerClient(nome, port, client))
+    
+
+
+    rp_req = client.build_request(request.method, url,
+                                  headers=request.headers.raw,
+                                  content=request.stream())
+
+    rp_resp = await client.send(rp_req, stream=True)
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=rp_resp.headers,
+        background=BackgroundTask(rp_resp.aclose),
+    )
+
+app.add_route("/{path:path}",
+              _reverse_proxy, ["GET", "POST"])
 
 
 if __name__ == "__main__":

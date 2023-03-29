@@ -36,6 +36,8 @@ async function register() {
     let passconf = document.getElementById("passconf").value
     let alert = document.getElementById("alert")
     alert.innerHTML = ""
+    let alert_good = document.getElementById("alert-good")
+    alert_good.innerHTML = ""
     
 
     if(pass != passconf) {
@@ -44,4 +46,5 @@ async function register() {
     }
 
     r = await net_register(user, pass)
+    // if(r) alert_good.innerHTML = "Registrazione effettuata"; redirect....
 }

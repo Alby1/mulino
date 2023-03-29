@@ -15,7 +15,8 @@
     </div>
     <div class="login-main">
         <div class="login-row">
-            <h2 id="alert" class="alert"></h2>
+            <h2 id="alert"></h2>
+            <h2 id="alert-good"></h2>
         </div>
         <div class="login-row">
             <label for="user">Username</label>
@@ -26,7 +27,7 @@
             <input type="password" id="pass">
         </div>
         <div class="login-row">
-            <label for="passconf">Confirm Password</label>
+            <label for="passconf">Riscrivi Password</label>
             <input type="password" id="passconf">
         </div>
         <div class="login-row">
@@ -37,8 +38,15 @@
         async function onstart() {
             let u = document.getElementById("user")
             u.addEventListener("input", async function(e) {
-                let can = await net_already_exists(e.target.value)
-                console.log(can)
+                let user_already_exists = await net_already_exists(e.target.value)
+
+                let alert = document.getElementById("alert")
+                alert.innerHTML = (user_already_exists ? "Questo utente esiste già" : "")
+                
+                let alert_good = document.getElementById("alert-good")
+                alert_good.innerHTML = (user_already_exists ? "" : "Questo nome è disponibile")
+
+                return user_already_exists
             })
         }
         onstart()

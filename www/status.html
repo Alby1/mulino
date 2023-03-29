@@ -7,7 +7,7 @@
 <body>
     <h1>Venditori disponibili</h1>
     {% for s in sellers -%}
-    <a href="http://localhost:{{ s.port }}/">{{ s.nome }}</a> 
+    <a href="http://localhost:9000/{{ s.nome }}">{{ s.nome }}</a> 
     <br>
     {% endfor %}
 </body>

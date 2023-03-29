@@ -4,3 +4,4 @@ sqlalchemy
 sqlalchemy_utils
 requests
 jinja2
+httpx
