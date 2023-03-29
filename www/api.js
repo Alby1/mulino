@@ -11,8 +11,10 @@ async function request_products() {
     })
 }
 
-async function net_login() {
-    return await fetch(`${window.location.origin}/api/users/login`).then(response => {
+async function net_login(user, password) {
+    user = encodeURI(user)
+    password = encodeURI(password)
+    return await fetch(`${window.location.origin}/api/users/login?user=${user}&password=${password}`).then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

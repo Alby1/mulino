@@ -3,3 +3,4 @@ fastapi
 sqlalchemy
 sqlalchemy_utils
 requests
+jinja2

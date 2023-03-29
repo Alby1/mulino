@@ -8,6 +8,7 @@ from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
 from sys import argv
 
@@ -17,11 +18,14 @@ import requests
 
 import json
 
-from sqlalchemy.ext.declarative import DeclarativeMeta
-
 import threading
 
 import time
+
+import random
+
+import string
+
 
 class AlchemyEncoder(json.JSONEncoder):
 
@@ -73,6 +77,15 @@ async def api_products_add(nome : str, prezzo: int, response : Response, quantit
 async def location():
     return argv[1]
 
+@app.get("/api/users/login")
+def api_users_login(user: str, password: str):
+    if(user is None or password is None): return False
+
+    global db
+    if(db.login(user, password)):
+        return {"status" : "ok"}
+    return {"status" : "bad"}
+
 
 @app.on_event("startup")
 async def startup():
@@ -88,6 +101,11 @@ async def index():
     return FileResponse("www/index.html")
 
 app.mount("/", StaticFiles(directory="www"), name="static")
+
+@app.get("/status")
+async def service_status():
+    return True
+
 
 class DB_Service():
     Base = declarative_base()
@@ -105,6 +123,10 @@ class DB_Service():
         user = Column(String(45), unique=True, nullable=False)
         password = Column(String(45), nullable=False)
         admin = Column(Boolean())
+        token = Column(String(20))
+
+        def __repr__(self):
+            return f"{self.user} {self.admin}"
 
     def __init__(self):
         self.protocol = "mysql+pymysql"
@@ -148,6 +170,42 @@ class DB_Service():
         except IntegrityError as e:
             return "product already exists"
         
+    def get_users(self):
+        s = self.session()
+        
+        q = s.query(self.Utente)
+        s.close()
+        
+        return q.all()
+    
+    def add_user(self, user, password, admin):
+        s = self.session()
+        u = self.Utente(user = user, password = password, admin = admin)
+        s.add(u)
+        s.commit()
+        i = u.id
+        s.close()
+        return i
+    
+    def login(self, user, password):
+        s = self.session()
+
+        letters = string.ascii_lowercase
+        result_str = ''.join(random.choice(letters) for i in range(20))
+
+        w = s.query(self.Utente).filter(self.Utente.user == user).filter(self.Utente.password == password)
+
+        u = w.first()
+
+        u.token = result_str
+
+        ret = False
+
+        if(w.count() != 0):
+            return True
+        
+        return result_str
+        
 
 
 def get_port():
@@ -155,14 +213,29 @@ def get_port():
     return int(p.text)
 
 def sync_main():
-    global db
-    ps = db.get_products()
-    pa = json.dumps(ps, cls=AlchemyEncoder)
+    try:
+        global db
+        ps = db.get_products()
+        data = json.dumps(ps, cls=AlchemyEncoder)
 
-    r = requests.post(f"http://localhost:9000/products?seller={argv[1]}", data=pa)
-    
+        r = requests.post(f"http://localhost:9000/products?seller={argv[1]}", data=data)
 
-    return r.text
+        us = db.get_users()
+        data = json.dumps(us, cls=AlchemyEncoder)
+
+        r = requests.post(f"http://localhost:9000/users_s?seller={argv[1]}", data=data)
+
+
+        r = requests.post(f"http://localhost:9000/users_r", data=data)
+
+        for u in json.loads(r.json()):
+            try:
+                db.add_user(u['user'], u['password'], u['admin'])
+            except Exception as e:
+                # print(e)
+                pass
+    except:
+        print("can't sync")
 
 
 def sync_thread():
