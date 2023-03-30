@@ -93,3 +93,7 @@ async function net_already_exists(user) {
         return data
     })
 }
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

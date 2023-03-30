@@ -42,6 +42,14 @@ body {
   justify-content: space-between;
 }
 
+.login-block {
+  display: flex;
+  flex-direction: column;
+  gap: -15px;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .login-button {
   padding: 1vh 1vw;
 }

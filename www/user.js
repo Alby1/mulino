@@ -35,7 +35,7 @@ async function register() {
     let pass = document.getElementById("pass").value
     let passconf = document.getElementById("passconf").value
     let alert = document.getElementById("alert")
-    alert.innerHTML = ""
+    alert.innerHTML = "Processing..."
     let alert_good = document.getElementById("alert-good")
     alert_good.innerHTML = ""
     
@@ -46,5 +46,12 @@ async function register() {
     }
 
     r = await net_register(user, pass)
-    // if(r) alert_good.innerHTML = "Registrazione effettuata"; redirect....
+    if(r['status'] == "ok") {
+        alert_good.innerHTML = "Registrazione avvenuta con successo!"
+        alert.outerHTML = "<p id='alert'>(Ridirezionamento automatico...)</p>"
+    } else if(r['status'] == "bad") {
+        alert.innerHTML = "Registrazione fallita! Riprova."
+    }
+    await sleep(3000)
+    window.location.replace("login.html")
 }

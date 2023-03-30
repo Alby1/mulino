@@ -117,7 +117,9 @@ def api_users_check_session(token: API.Token):
 @app.post("/api/users/register")
 def api_users_register(register : API.Login):
     global db
-    db.add_user(register.user, register.password, False)
+    ok = db.add_user(register.user, register.password, False)
+    if ok : return {"status" : "ok"}
+    return {"status" : "bad"}
 
 @app.get("/api/users/already_exists")
 def api_users_already_exists(user: str):
@@ -229,13 +231,16 @@ class DB_Service():
         return q.all()
     
     def add_user(self, user, password, admin):
-        s = self.session()
-        u = self.Utente(user = user, password = password, admin = admin)
-        s.add(u)
-        s.commit()
-        i = u.id
-        s.close()
-        return i
+        try:
+            s = self.session()
+            u = self.Utente(user = user, password = password, admin = admin)
+            s.add(u)
+            s.commit()
+            i = u.id
+            s.close()
+            return i
+        except: return False
+            
 
     def user_exists(self, user):
         s = self.session()
