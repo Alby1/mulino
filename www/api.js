@@ -94,6 +94,57 @@ async function net_already_exists(user) {
     })
 }
 
+async function net_add_event(nome, costo, quantita, token) {
+    console.log(JSON.stringify({"nome" : nome, "costo" : costo, "quantita" : quantita, "token" : token}))
+    return await fetch(`${base_uri()}/api/products/add`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({"nome" : nome, "costo" : costo, "quantita" : quantita, "token" : token})
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(async data => {
+        return data
+    })
+}
+
+async function net_update_event(token, id, nome = null, costo = null, quantita = null) {
+    return await fetch(`${base_uri()}/api/products/update`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({"token" : token, "id" : id, "nome" : nome, "costo" : costo, "quantita" : quantita})
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(async data => {
+        return data
+    })
+}
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function net_all_users(token) {
+    return await fetch(`${base_uri()}/api/users?token=${token}`).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(async data => {
+        return data
+    })
 }

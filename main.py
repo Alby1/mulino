@@ -67,7 +67,7 @@ class DB_Service():
     class Prodotto(Base):
         __tablename__ = 'prodotti'
         id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
-        nome = Column(String(45), nullable=False, unique=True)
+        nome = Column(String(45), nullable=False)
         prezzo = Column(INTEGER(unsigned=True), nullable=False)
         quantita = Column(INTEGER(unsigned=True), nullable=False)
         where = Column(Integer, ForeignKey("venditori.id"))
@@ -152,6 +152,7 @@ class DB_Service():
             m.prezzo = p.prezzo
             m.quantita = p.quantita
             s.commit()
+            s.close()
 
         except:
             pa = self.Prodotto(nome = p.nome, quantita=p.quantita, prezzo=p.prezzo, where = w)
@@ -190,7 +191,8 @@ class DB_Service():
                 s.commit()
                 i = ua.id
                 s.close()
-            except: pass
+            except:
+                s.close()
 
         return i
         
@@ -219,6 +221,8 @@ class DB_Service():
         s = self.session()
 
         ss = s.query(self.Seller)
+
+        s.close()
 
         return ss.all()
         

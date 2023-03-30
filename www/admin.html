@@ -7,13 +7,73 @@
     <link rel="stylesheet" href="style.css">
     <script src="api.js"></script>
     <script src="user.js"></script>
-    <script src="table.js"></script>
+    <script src="index.js"></script>
     <title>Pannello amministratore</title>
 </head>
 <body>
-    <div class="products-title">
-        <a class="products-login" href="index.html">Indietro</a>
-        <h1>Pannello amministratore</h1>
-    </div>    
+    <div class="products-main">
+        <div class="products-title">
+            <a class="products-login" href="index.html">Indietro</a>
+            <h1>Pannello amministratore</h1>
+        </div>
+        <div class="admin-flex">
+            <div class="admin-flex-box">
+                <h2>Aggiungi Prodotto</h2>
+                <div class="admin-flex-form">
+                    <div class="login-row">
+                        <label for="nome">Nome</label>
+                        <input type="text" id="nome">
+                    </div>
+                    <div class="login-row">    
+                        <label for="costo">Costo</label>
+                        <input type="number" name="" id="costo" min="0">
+                    </div>
+                    <div class="login-row">
+                        <label for="quantita">Quantità</label>
+                        <input type="number" name="" id="quantita" min="0">
+                    </div>
+                    <div class="login-row">
+                        <input type="button" value="Conferma" onclick="invia_prodotto()">
+                    </div>
+                </div>
+            </div>
+            <div class="admin-flex-box">
+                <table id="users">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Livello</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-b">
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        async function start() {
+            let table = document.getElementById("users-b")
+            let token = localStorage.getItem("token")
+            let us = JSON.parse( await net_all_users(token))
+
+            for (const user of us) {
+                let tr = document.createElement("tr")
+                
+                let nome = document.createElement("td")
+                nome.innerHTML = user.user
+                tr.appendChild(nome)
+
+                let livello = document.createElement("td")
+                livello.innerHTML = (user.admin ? "Admin" : "Standard")
+                tr.appendChild(livello)
+
+                table.appendChild(tr)
+            }
+        }
+
+        start()
+    </script>
 </body>
 </html>

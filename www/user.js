@@ -23,9 +23,11 @@ function logout() {
     localStorage.removeItem("loggedIn")
     localStorage.removeItem("username")
     localStorage.removeItem("token")
+    localStorage.removeItem("admin")
 }
 
 function checkAdmin() {
+    if(!checkSession()) return False
     let admin = localStorage.getItem("admin") == "true"
     return admin
 }

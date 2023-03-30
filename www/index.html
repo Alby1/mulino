@@ -16,7 +16,7 @@
     <div class="products-main">
         <div class="products-title">
             <h1>Prodotti</h1>
-            <p id="you-are" class="products-title-side"></p>
+            <span id="you-are" class="products-title-side"></span>
             <a href="login.html" class="products-login">Login</a>
             <a href="register.html" class="products-login">Register</a>
             <a id="logout" class="products-login" onclick="logout()" href="">Logout</a>
@@ -29,7 +29,7 @@
                     <th>Prezzo</th>
                     <th>Quantita</th>
                     <th>Aggiungi al carrello</th>
-                    <th class="admin-action">Modifica</th>
+                    <th class="admin-action"><button class="products-login" onclick="abilita_modifica()" id="abilita_modifica_button">Abilita modifica</button></th>
                 </tr>
             </thead>
         </table>
@@ -44,6 +44,7 @@
             document.getElementById("logout").hidden = !active
 
             let admin = checkAdmin()
+            
             for (const el of document.getElementsByClassName("admin-action")) {
                 el.hidden = !admin
             }

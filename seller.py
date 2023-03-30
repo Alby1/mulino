@@ -59,6 +59,20 @@ class API():
     class Token(BaseModel):
         token: str
 
+    class Product(BaseModel):
+        id: int = None
+        nome: str = None
+        costo: int = None 
+        quantita: int = None
+        token: str = None
+
+    def is_user_admin(db, token):
+        user = db.get_user_by_token(token)
+        if(user is not None):
+            if(user.admin is False):
+                return False
+        return True
+
 
 
 
@@ -78,18 +92,51 @@ async def api_products(response: Response, id : int = None): # type: ignore
     return db.get_product_by_id(id)
 
 
-@app.get("/api/products/add")
-async def api_products_add(nome : str, prezzo: int, response : Response, quantita: int = None): # type: ignore
+@app.post("/api/products/add")
+async def api_products_add(product : API.Product, response: Response):
+    nome = product.nome
+    prezzo = product.costo
+    quantita = product.quantita
+    token = product.token
+
+    global db
+    
+    if(not API.is_user_admin(db, token)): response.status_code == status.HTTP_400_BAD_REQUEST
 
     if(nome is None or prezzo is None):
         response.status_code = status.HTTP_400_BAD_REQUEST
     
-    global db
     return db.add_product(DB_Service.Prodotto(nome=nome, prezzo=prezzo, quantita=quantita))
+
+@app.post("/api/products/update")
+async def api_products_update(product : API.Product, response: Response):
+    global db
+    token = product.token
+    
+    if(not API.is_user_admin(db, token)): 
+        response.status_code == status.HTTP_400_BAD_REQUEST
+        return "user is not admin"
+    
+    nome = product.nome
+    prezzo = product.costo
+    quantita = product.quantita
+    id = product.id
+
+    return db.update_product(id, nome, prezzo, quantita)
+
+
+
 
 @app.get("/location")
 async def location():
     return argv[1]
+
+@app.get("/api/users")
+def all_users(token : str):
+    global db
+    if(API.is_user_admin(db, token)):
+        return json.dumps(db.get_users(), cls=AlchemyEncoder) 
+    return json.dumps([{"user" : "YOU ARE NOT", "admin" : True}])
 
 @app.post("/api/users/login")
 def api_users_login(login: API.Login):
@@ -147,6 +194,10 @@ async def startup():
 async def index():
     return FileResponse("www/index.html")
 
+
+@app.exception_handler(FileNotFoundError)
+async def file_not_found(request: Request, exc):
+    return FileResponse("www/404.html")
 
 @app.get("/{path:path}", response_class=FileResponse)
 async def index_(request: Request):
@@ -222,6 +273,20 @@ class DB_Service():
         except IntegrityError as e:
             return "product already exists"
         
+    def update_product(self, id, nome = None, costo = None, quantita = None):
+        s = self.session()
+        q = s.query(self.Prodotto).filter(self.Prodotto.id == id).first()
+
+        if nome is not None: q.nome = nome
+        if costo is not None: q.prezzo = costo
+        if quantita is not None: q.quantita = quantita
+
+        s.commit()
+        s.close()
+
+        return "ok"
+
+        
     def get_users(self):
         s = self.session()
         
@@ -254,6 +319,12 @@ class DB_Service():
         except: pass
 
         return ret
+    
+    def get_user_by_token(self, token):
+        s = self.session()
+        q = s.query(self.Utente).filter(self.Utente.token == token)
+        if(q.count() == 0): return None
+        return q.first()
     
     def login(self, user, password):
         s = self.session()

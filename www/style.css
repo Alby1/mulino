@@ -86,3 +86,25 @@ body {
 #alert-good{
   color: #22aa22 !important;
 }
+
+
+.admin-flex-box{
+  display: flex;
+  width: 50%;
+  flex-direction: column;
+}
+
+.admin-flex {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 10px;
+}
+
+.admin-flex-form {
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
