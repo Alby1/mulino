@@ -45,8 +45,20 @@ async function products() {
         btn.innerHTML = "Carrello"
         btn.id = prod["id"]
         btn.addEventListener("click", mettiNelCarrello)
+        td.classList.add("active-session-action")
         td.appendChild(btn)
         tr.appendChild(td)
+        
+        td = document.createElement("td")
+        let del = document.createElement("btn")
+        del.innerHTML = "Elimina"
+        del.id = prod["id"]
+        del.addEventListener("click", elimina)
+        td.classList.add("delete-button")
+        td.hidden = true
+        td.appendChild(del)
+        tr.appendChild(td)
+
 
         tbody.appendChild(tr)
     }
@@ -54,7 +66,25 @@ async function products() {
 }
 
 async function mettiNelCarrello(e) {
-    console.log(e.target.id)
+    let done = false
+    let cart = JSON.parse(localStorage.getItem("cart"))
+    if(cart == null) cart = []
+    for (const item of cart) {
+        if(item.id == e.target.id){
+            let max = await net_check_product_availability(item.id)
+            if(item.count < max) item.count += 1
+            done = true
+        }
+    }
+    if(!done) {
+        cart.push({"id" : e.target.id, "count" : 1, "nome" : e.target.parentNode.parentNode.firstChild.firstChild.innerHTML, "token" : localStorage.getItem("token")})
+    }
+    localStorage.setItem("cart", JSON.stringify(cart))
+}
+
+async function elimina(e) {
+    await net_delete_product(e.target.id, localStorage.getItem("token"))
+    window.location.reload()
 }
 
 function capitalizeFirstLetter(string) {
@@ -63,11 +93,15 @@ function capitalizeFirstLetter(string) {
 
 let modifica_attiva = false
 
-function abilita_modifica() {
+async function abilita_modifica() {
+    let del_list = document.getElementsByClassName("delete-button")
+    for (let del of del_list) {
+        del.hidden = modifica_attiva
+    }
     if(!modifica_attiva) {
         let list = document.querySelectorAll("p")
         document.getElementById("abilita_modifica_button").innerHTML = "Applica modifiche"
-    
+        
         for (let p of list) {
             let input = document.createElement("input")
             input.value = p.innerHTML
@@ -78,25 +112,30 @@ function abilita_modifica() {
             input.id = p.id
             p.parentNode.replaceChild(input, p)
         }
+        
     } else {
         document.getElementById("abilita_modifica_button").innerHTML = "Abilita modifica"
         let list = document.querySelectorAll("input")
-    
+        let any_changed = false
+        
         for (let input of list) {
             let p = document.createElement("p")
             if(input.classList.contains("modified")) {
+                any_changed=true
+
                 let id = input.parentNode.parentNode.id
                 let token = localStorage.getItem("token")
                 let value = input.id
-                console.log(value)
-                if(value == "nome") net_update_event(token, id, nome=input.value)
-                if(value == "prezzo") net_update_event(token, id, null, input.value)
-                if(value == "quantita") net_update_event(token, id, null, null, input.value)
+
+                if(value == "nome") await net_update_product(token, id, nome=input.value)
+                if(value == "prezzo") await net_update_product(token, id, null, input.value)
+                if(value == "quantita") await net_update_product(token, id, null, null, input.value)
             }
             p.innerHTML = input.value
             p.id = input.id
             input.parentNode.replaceChild(p, input)
         }
+        if(any_changed) window.location.reload()
     } 
 
     modifica_attiva = !modifica_attiva
@@ -109,5 +148,5 @@ async function invia_prodotto() {
     let costo = document.getElementById("costo").value
     let quantita = document.getElementById("quantita").value
     let token = localStorage.getItem("token")
-    net_add_event(nome, parseInt(costo), parseInt(quantita), token)
+    net_add_product(nome, parseInt(costo), parseInt(quantita), token)
 }

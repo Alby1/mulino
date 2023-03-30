@@ -17,9 +17,10 @@
         <div class="products-title">
             <h1>Prodotti</h1>
             <span id="you-are" class="products-title-side"></span>
-            <a href="login.html" class="products-login">Login</a>
-            <a href="register.html" class="products-login">Register</a>
-            <a id="logout" class="products-login" onclick="logout()" href="">Logout</a>
+            <a href="login.html" class="products-login inactive-session-action">Login</a>
+            <a href="register.html" class="products-login inactive-session-action">Register</a>
+            <a id="logout" class="products-login active-session-action" onclick="logout()" href="">Logout</a>
+            <a href="cart.html" class="products-login active-session-action">Carrello</a>
             <a href="admin.html" class="products-login admin-action">Admin</a>
         </div>
         <table id="table" class="table">
@@ -28,7 +29,7 @@
                     <th>Nome</th>
                     <th>Prezzo</th>
                     <th>Quantita</th>
-                    <th>Aggiungi al carrello</th>
+                    <th class="active-session-action">Aggiungi al carrello</th>
                     <th class="admin-action"><button class="products-login" onclick="abilita_modifica()" id="abilita_modifica_button">Abilita modifica</button></th>
                 </tr>
             </thead>
@@ -37,11 +38,18 @@
 
     <script>
         async function onstart() {
-            products()
+            pr = products()
 
             let active = await checkSession()
             document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${localStorage.getItem("username")}` : "You are not logged in")
-            document.getElementById("logout").hidden = !active
+            
+            await pr
+            for (const el of document.getElementsByClassName("active-session-action")) {
+                el.hidden = !active
+            }
+            for (const el of document.getElementsByClassName("inactive-session-action")) {
+                el.hidden = active
+            }
 
             let admin = checkAdmin()
             

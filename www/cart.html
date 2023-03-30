@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="api.js"></script>
+    <script src="user.js"></script>
+    <script src="cart.js"></script>
+    <title>Carrello</title>
+</head>
+<body>
+    <div class="products-title">
+        <a class="products-login" href="index.html">Indietro</a>
+        <h1>Il tuo carrello</h1>
+    </div>
+    <div class="products-main">
+        <table>
+            <thead>
+                <tr>
+                    <th>Prodotto</th>
+                    <th>Quantità</th>
+                    <th rowspan="2">Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="cart"></tbody>
+        </table>
+        <input type="button" value="Acquista" id="buy-button" class="login-button" onclick="acquista()">
+    </div>
+    <div id="action-prefab"><button onclick="highercount(this)">+</button> <button onclick="lowercount(this)">-</button> <button onclick="removeitem(this)">x</button></div> <!-- ← AZIONI  -->
+    <script>
+        table()
+    </script>
+</body>
+</html>

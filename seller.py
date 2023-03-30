@@ -8,10 +8,10 @@ from starlette.requests import Request as StarletteRequest
 
 from pydantic import BaseModel
 
-from sqlalchemy import create_engine, Column, Integer, String, Boolean
+from sqlalchemy import ForeignKey, create_engine, Column, Integer, String, Boolean
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.dialects.mysql import INTEGER
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
@@ -64,7 +64,9 @@ class API():
         nome: str = None
         costo: int = None 
         quantita: int = None
+        count: int = None
         token: str = None
+    
 
     def is_user_admin(db, token):
         user = db.get_user_by_token(token)
@@ -124,6 +126,38 @@ async def api_products_update(product : API.Product, response: Response):
 
     return db.update_product(id, nome, prezzo, quantita)
 
+
+@app.get("/api/products/delete")
+async def api_products_delete(id: int, token: str = None):
+    global db
+    if(token == "undefined"):
+        return "no token provided"
+    if(API.is_user_admin(db, token)):
+        return db.delete_product(id)
+    return "user is not admin"
+
+@app.get("/api/products/availability")
+async def api_products_availability(id: int = None):
+    global db
+    if(id == None):
+        return "no id provided"
+
+    pr = db.get_product_by_id(id)
+    return pr.quantita
+
+@app.post("/api/products/buy")
+async def api_products_buy(products: list[API.Product]):
+    global db
+    
+    for pr in products:
+        if(not db.check_session(pr.token)):
+            return "token not valid"
+        prdb = db.get_product_by_id(pr.id)
+        if(prdb.quantita - pr.count <= 0):
+            return "troppi oggetti"
+        
+        prdb.quantita -= pr.count
+        db.update_product(product=prdb)
 
 
 
@@ -220,6 +254,8 @@ class DB_Service():
         prezzo = Column(INTEGER(unsigned=True), nullable=False)
         quantita = Column(INTEGER(unsigned=True), nullable=False)
 
+        fattureprodotti_ = relationship("FatturaProdotto", back_populates="prodotto_")
+
     class Utente(Base):
         __tablename__ = 'utenti'
         id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
@@ -228,8 +264,28 @@ class DB_Service():
         admin = Column(Boolean())
         token = Column(String(20), unique=True)
 
+        fatture_ = relationship("Fattura", back_populates="utente_")
+
         def __repr__(self):
             return f"{self.user} {self.admin}"
+        
+    class Fattura(Base):
+        __tablename__ = 'fatture'
+        id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
+        user = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+        indirizzo = Column(String(40), nullable=False)
+
+        utente_ = relationship("Utente", back_populates="fatture_")
+        fattureprodotti_ = relationship("FatturaProdotto", back_populates="fattura_")
+
+    class FatturaProdotto(Base):
+        __tablename__ = 'fatture_prodotti'
+        id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
+        fattura = Column(Integer, ForeignKey("fatture.id"))
+        prodotto = Column(Integer, ForeignKey("prodotti.id"))
+
+        fattura_ = relationship("Fattura", back_populates="fattureprodotti_")
+        prodotto_ = relationship("Prodotto", back_populates="fattureprodotti_")
 
     def __init__(self):
         self.protocol = "mysql+pymysql"
@@ -251,15 +307,19 @@ class DB_Service():
     def get_products(self):
         session = self.session()
 
-        q = session.query(self.Prodotto)
+        try:
+            q = session.query(self.Prodotto)
+        except: pass
+        finally: session.close()
 
-        session.close()
         return q.all()
     
-    def get_product_by_id(self, id):
+    def get_product_by_id(self, id) -> Prodotto:
         session = self.session()
-
-        q = session.query(self.Prodotto).filter(self.Prodotto.id == id)
+        try:
+            q = session.query(self.Prodotto).filter(self.Prodotto.id == id)
+        except:pass
+        finally: session.close()
 
         return q.first()
     
@@ -268,30 +328,51 @@ class DB_Service():
         try:
             session.add(product)
             session.commit()
-            session.close()
             return "ok"
-        except IntegrityError as e:
-            return "product already exists"
+        except IntegrityError as e: return "product already exists"
+        finally: session.close()
         
-    def update_product(self, id, nome = None, costo = None, quantita = None):
+    def update_product(self, id: int = None, nome : str = None, costo : int = None, quantita : int = None, product : API.Product = None):
         s = self.session()
-        q = s.query(self.Prodotto).filter(self.Prodotto.id == id).first()
+        try:
+            if product is not None:
+                id = product.id
+            q = s.query(self.Prodotto).filter(self.Prodotto.id == id).first()
 
-        if nome is not None: q.nome = nome
-        if costo is not None: q.prezzo = costo
-        if quantita is not None: q.quantita = quantita
+            if product is not None:
+                q.nome = product.nome
+                q.prezzo = product.prezzo
+                q.quantita = product.quantita
 
-        s.commit()
-        s.close()
+            if nome is not None: q.nome = nome
+            if costo is not None: q.prezzo = costo
+            if quantita is not None: q.quantita = quantita
+
+            s.commit()
+        except: pass
+        finally: s.close()
 
         return "ok"
+    
+    def delete_product(self, id):
+        s = self.session()
+        try:
+            u = s.query(self.Prodotto).filter(self.Prodotto.id == id).first()
+            s.merge(u)
+            s.delete(u)
+            s.commit()
+        except Exception as e: print(e)
+        finally: s.close()
+        return "ok"
+    
 
         
     def get_users(self):
         s = self.session()
-        
-        q = s.query(self.Utente)
-        s.close()
+        try:
+            q = s.query(self.Utente)
+        except: pass
+        finally: s.close()
         
         return q.all()
     
@@ -304,7 +385,9 @@ class DB_Service():
             i = u.id
             s.close()
             return i
-        except: return False
+        except: 
+            s.close()
+            return False
             
 
     def user_exists(self, user):
@@ -314,62 +397,66 @@ class DB_Service():
             u = s.query(self.Utente).filter(self.Utente.user == user)
             if(u.count() != 0): ret = True
         except: ret = False
-        try:
-            s.close()
-        except: pass
+        finally: s.close()
 
         return ret
     
     def get_user_by_token(self, token):
         s = self.session()
-        q = s.query(self.Utente).filter(self.Utente.token == token)
+        try:
+            q = s.query(self.Utente).filter(self.Utente.token == token)
+        except: pass
+        finally: s.close()
         if(q.count() == 0): return None
         return q.first()
     
     def login(self, user, password):
         s = self.session()
+        try:
+            letters = string.ascii_lowercase
+            result_str = ''.join(random.choice(letters) for i in range(20))
 
-        letters = string.ascii_lowercase
-        result_str = ''.join(random.choice(letters) for i in range(20))
+            w = s.query(self.Utente).filter(self.Utente.user == user).filter(self.Utente.password == password)
 
-        w = s.query(self.Utente).filter(self.Utente.user == user).filter(self.Utente.password == password)
+            u = w.first()
 
-        u = w.first()
+            if(w.count() == 0):
+                s.close()
+                return None
 
-        if(w.count() == 0):
-            return None
+            admin = False
 
-        admin = False
+            cycles = 1
+            while cycles > 0:
+                try:
+                    u.token = result_str
+                    admin = u.admin
 
-        cycles = 1
-        while cycles > 0:
-            try:
-                u.token = result_str
-                admin = u.admin
+                    s.commit()
 
-                s.commit()
-
-                cycles = -1
-            except Exception as e:
-                if(cycles >= 5):
-                    print(e)
-                    break
-                cycles += 1
-                time.sleep(0.1 * cycles)
-
-        s.close()
-
+                    cycles = -1
+                except Exception as e:
+                    if(cycles >= 5):
+                        print(e)
+                        break
+                    cycles += 1
+                    time.sleep(0.1 * cycles)
+        except: pass
+        finally: s.close()
         
         return result_str, admin
     
-    def check_session(self, token: str):
+    def check_session(self, token: str = None):
         if(token is None): return False
         s = self.session()
+        try:
+            q = s.query(self.Utente).filter(self.Utente.token == token)
 
-        q = s.query(self.Utente).filter(self.Utente.token == token)
-
-        if(q.count() != 0):
-            return True
+            if(q.count() != 0):
+                s.close()
+                return True
+        except: pass
+        finally: s.close()
         return False
         
 
@@ -383,7 +470,6 @@ def sync_main():
         global db
         ps = db.get_products()
         data = json.dumps(ps, cls=AlchemyEncoder)
-
         r = requests.post(f"http://localhost:9000/products?seller={argv[1]}", data=data)
 
         us = db.get_users()

@@ -94,8 +94,7 @@ async function net_already_exists(user) {
     })
 }
 
-async function net_add_event(nome, costo, quantita, token) {
-    console.log(JSON.stringify({"nome" : nome, "costo" : costo, "quantita" : quantita, "token" : token}))
+async function net_add_product(nome, costo, quantita, token) {
     return await fetch(`${base_uri()}/api/products/add`, {
         method: 'POST',
         headers: {
@@ -114,7 +113,7 @@ async function net_add_event(nome, costo, quantita, token) {
     })
 }
 
-async function net_update_event(token, id, nome = null, costo = null, quantita = null) {
+async function net_update_product(token, id, nome = null, costo = null, quantita = null) {
     return await fetch(`${base_uri()}/api/products/update`, {
         method: 'POST',
         headers: {
@@ -139,6 +138,50 @@ function sleep(ms) {
 
 async function net_all_users(token) {
     return await fetch(`${base_uri()}/api/users?token=${token}`).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(async data => {
+        return data
+    })
+}
+
+async function net_delete_product(id, token) {
+    return await fetch(`${base_uri()}/api/products/delete?token=${token}&id=${id}`).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(async data => {
+        return data
+    })
+}
+
+async function net_check_product_availability(id) {
+    return await fetch(`${base_uri()}/api/products/availability?id=${id}`).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(async data => {
+        return data
+    })
+}
+
+async function net_buy_products(cart) {
+    console.log(JSON.stringify(cart))
+    return await fetch(`${base_uri()}/api/products/buy`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cart)
+    }).then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
