@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,6 +11,7 @@
     <script src="index.js"></script>
     <title>Pannello amministratore</title>
 </head>
+
 <body>
     <div class="products-main">
         <div class="products-title">
@@ -24,7 +26,7 @@
                         <label for="nome">Nome</label>
                         <input type="text" id="nome">
                     </div>
-                    <div class="login-row">    
+                    <div class="login-row">
                         <label for="costo">Costo</label>
                         <input type="number" name="" id="costo" min="0">
                     </div>
@@ -39,29 +41,47 @@
             </div>
             <div class="admin-flex-box">
                 <h2>Utenti</h2>
-                <table id="users">
+                <table id="users" style="width: 95%;">
                     <thead>
                         <tr>
+                            <th>Id</th>
                             <th>Nome</th>
                             <th>Livello</th>
                         </tr>
                     </thead>
-                    <tbody id="users-b">
-
-                    </tbody>
+                    <tbody id="users-b"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="admin-flex">
+            <div class="admin-flex-box">
+                <h2>Acquisti</h2>
+                <table style="width: 95%;">
+                    <thead>
+                        <tr>
+                            <th>Utente</th>
+                            <th>Oggetti</th>
+                            <th>Indirizzo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="acquisti-table"></tbody>
                 </table>
             </div>
         </div>
     </div>
     <script>
         async function start() {
-            let table = document.getElementById("users-b")
+            let users_table = document.getElementById("users-b")
             let token = localStorage.getItem("token")
-            let us = JSON.parse( await net_all_users(token))
-
+            let us = JSON.parse(await net_all_users(token))
+            
             for (const user of us) {
                 let tr = document.createElement("tr")
-                
+
+                let id = document.createElement("td")
+                id.innerHTML = user.id
+                tr.appendChild(id)
+
                 let nome = document.createElement("td")
                 nome.innerHTML = user.user
                 tr.appendChild(nome)
@@ -70,11 +90,36 @@
                 livello.innerHTML = (user.admin ? "Admin" : "Standard")
                 tr.appendChild(livello)
 
-                table.appendChild(tr)
+                users_table.appendChild(tr)
+            }
+
+
+            let acquisti_table = document.getElementById("acquisti-table")
+            let acq = JSON.parse(await net_all_acquisti(token))
+            
+            for (const ac of acq) {
+                let tr = document.createElement("tr")
+                
+                let user = document.createElement("td")
+                user.innerHTML= ac.user
+                tr.appendChild(user)
+
+                let oggetti = document.createElement("td")
+                for (const og of ac.oggetti) {
+                    oggetti.innerHTML += ` ${og.nome} (${og.count})`
+                }
+                tr.appendChild(oggetti)
+
+                let indirizzo = document.createElement("td")
+                indirizzo.innerHTML = ac.address
+                tr.appendChild(indirizzo)
+
+                acquisti_table.appendChild(tr)
             }
         }
 
         start()
     </script>
 </body>
+
 </html>

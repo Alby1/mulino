@@ -71,11 +71,11 @@ class API():
     
 
     def is_user_admin(db, token):
+        if(token == "null"): return False
         user = db.get_user_by_token(token)
         if(user is not None):
-            if(user.admin is False):
-                return False
-        return True
+            return user.admin
+        return False
 
 
 
@@ -164,10 +164,27 @@ async def api_products_buy(products: list[API.Product]):
             if(prdb.quantita - pr.count <= 0):
                 return f"troppi {pr.nome}, massimo è {prdb.quantita}"
             
-            db.add_fattura_prodotto(fattura, pr.id)
+            db.add_fattura_prodotto(fattura, pr.id, pr.count)
             prdb.quantita -= pr.count
             db.update_product(product=prdb)
 
+@app.get("/api/fatture")
+async def all_fatture(token):
+    global db
+    if(not API.is_user_admin(db, token)):
+        return json.dumps([{"user" : "YOU ARE", "oggetti": [{"nome": "", "count" : 0}], "address" : "ADMIN"}])
+
+    fatture = db.get_fatture()
+    ret = []
+    for r in fatture:
+        fp = db.get_fatture_prodotti_by_fattura_id(r.id)
+        fpj = []
+        for g in fp:
+            p = db.get_product_by_id(g.prodotto)
+            fpj.append({"nome" : p.nome, "count" : g.quantita})
+            us = db.get_user_by_id(r.user)
+        ret.append({"user" : f"{us.user} ({us.id})", "address": r.indirizzo, "oggetti": fpj})
+    return json.dumps(ret)
 
 
 @app.get("/location")
@@ -215,6 +232,7 @@ def api_users_register(register : API.Login):
 def api_users_already_exists(user: str):
     global db
     return db.user_exists(user)
+
 
 
 @app.get("/status")
@@ -292,6 +310,7 @@ class DB_Service():
         id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
         fattura = Column(Integer, ForeignKey("fatture.id"))
         prodotto = Column(Integer, ForeignKey("prodotti.id"))
+        quantita = Column(Integer, nullable=False)
 
         fattura_ = relationship("Fattura", back_populates="fattureprodotti_")
         prodotto_ = relationship("Prodotto", back_populates="fattureprodotti_")
@@ -398,19 +417,36 @@ class DB_Service():
             s.close()
             return i
         
-    def add_fattura_prodotto(self, fattura: int, prodotto: int):
+    def add_fattura_prodotto(self, fattura: int, prodotto: int, quantita: int):
         s = self.session()
 
         i = False
         try:
-            fp = self.FatturaProdotto(fattura=fattura, prodotto=prodotto)
+            fp = self.FatturaProdotto(fattura=fattura, prodotto=prodotto, quantita=quantita)
             s.add(fp)
             s.commit()
             i = fp.id
-        except: pass
+        except Exception as e: pass
         finally:
             s.close()
             return i
+        
+    def get_fatture(self) -> list[Fattura]:
+        s = self.session()
+        f = s.query(self.Fattura)
+        s.close()
+        return f.all()
+    
+    def get_fatture_prodotti_by_fattura_id(self, id) -> list[FatturaProdotto]:
+        s = self.session()
+        ret = False
+        try:
+            q = s.query(self.FatturaProdotto).filter(self.FatturaProdotto.fattura == id)
+            ret = q.all()
+        except: pass
+        finally: 
+            s.close()
+            return ret
     
 
         
@@ -506,6 +542,16 @@ class DB_Service():
         finally: s.close()
         return False
         
+    def get_user_by_id(self, id: int) -> Utente:
+        s = self.session()
+        ret = False
+        try:
+            q = s.query(self.Utente).filter(self.Utente.id == id)
+            ret = q.first()
+        except: pass
+        finally:
+            s.close()
+            return ret
 
 
 def get_port():

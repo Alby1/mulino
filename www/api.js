@@ -190,3 +190,15 @@ async function net_buy_products(cart) {
         return data
     })
 }
+
+async function net_all_acquisti(token) {
+    return await fetch(`${base_uri()}/api/fatture?token=${token}`).then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(async data => {
+        return data
+    })
+}
