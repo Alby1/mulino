@@ -164,7 +164,7 @@ async def api_products_buy(products: list[API.Product]):
             if(prdb.quantita - pr.count <= 0):
                 return f"troppi {pr.nome}, massimo è {prdb.quantita}"
             
-            db.add_fattura_prodotto(fattura, pr.id, pr.count)
+            db.add_fattura_prodotto(fattura, pr.id, pr.count, prdb.prezzo)
             prdb.quantita -= pr.count
             db.update_product(product=prdb)
 
@@ -311,6 +311,7 @@ class DB_Service():
         fattura = Column(Integer, ForeignKey("fatture.id"))
         prodotto = Column(Integer, ForeignKey("prodotti.id"))
         quantita = Column(Integer, nullable=False)
+        unitario = Column(Integer, nullable=False)
 
         fattura_ = relationship("Fattura", back_populates="fattureprodotti_")
         prodotto_ = relationship("Prodotto", back_populates="fattureprodotti_")
@@ -417,12 +418,12 @@ class DB_Service():
             s.close()
             return i
         
-    def add_fattura_prodotto(self, fattura: int, prodotto: int, quantita: int):
+    def add_fattura_prodotto(self, fattura: int, prodotto: int, quantita: int, unitario: int):
         s = self.session()
 
         i = False
         try:
-            fp = self.FatturaProdotto(fattura=fattura, prodotto=prodotto, quantita=quantita)
+            fp = self.FatturaProdotto(fattura=fattura, prodotto=prodotto, quantita=quantita, unitario=unitario)
             s.add(fp)
             s.commit()
             i = fp.id
@@ -434,6 +435,12 @@ class DB_Service():
     def get_fatture(self) -> list[Fattura]:
         s = self.session()
         f = s.query(self.Fattura)
+        s.close()
+        return f.all()
+    
+    def get_fatture_prodotti(self) -> list[FatturaProdotto]:
+        s = self.session()
+        f = s.query(self.FatturaProdotto)
         s.close()
         return f.all()
     
@@ -579,6 +586,13 @@ def sync_main():
             except Exception as e:
                 # print(e)
                 pass
+
+        # TODO: inviare fatture a server centrale
+        data = json.dumps(db.get_fatture(), cls=AlchemyEncoder)
+        r = requests.post(f"http://localhost:9000/fatture_s?seller={argv[1]}", data=data)
+
+        data = json.dumps(db.get_fatture_prodotti(), cls=AlchemyEncoder)
+        r = requests.post(f"http://localhost:9000/fatture_prodotti_s?seller={argv[1]}", data=data)
     except Exception as es:
         # print(es)
         print("can't sync")
@@ -588,7 +602,7 @@ def sync_thread():
     try:
         while True:
             sync_main()
-            time.sleep(10)
+            time.sleep(2.5)
     except KeyboardInterrupt:
         return
     

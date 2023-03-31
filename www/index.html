@@ -12,6 +12,16 @@
     <title>Prodotti</title>
 </head>
 
+<!-- 
+TODO:     
+
+numeri di fianco a pulsanti aggiungi a carrello
+
+sessione del carrello:
+- mezz'ora di timer, resettato ogni operazione sul carrello (+,-,t)
+- quantita deve aggiornarsi rispettando i carrelli
+ -->
+
 <body>
     <div class="products-main">
         <div class="products-title">
@@ -33,28 +43,34 @@
                     <th class="admin-action"><button class="products-login" onclick="abilita_modifica()" id="abilita_modifica_button">Abilita modifica</button></th>
                 </tr>
             </thead>
+            <tbody id="table-b"></tbody>
         </table>
     </div>
 
     <script>
         async function onstart() {
-            pr = products()
-
-            let active = await checkSession()
-            document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${localStorage.getItem("username")}` : "You are not logged in")
-            
-            await pr
-            for (const el of document.getElementsByClassName("active-session-action")) {
-                el.hidden = !active
-            }
-            for (const el of document.getElementsByClassName("inactive-session-action")) {
-                el.hidden = active
-            }
-
-            let admin = checkAdmin()
-            
-            for (const el of document.getElementsByClassName("admin-action")) {
-                el.hidden = !admin
+            while (true) {
+                try{
+                    pr = products()
+        
+                    let active = await checkSession()
+                    document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${localStorage.getItem("username")}` : "You are not logged in")
+                    
+                    await pr
+                    for (const el of document.getElementsByClassName("active-session-action")) {
+                        el.hidden = !active
+                    }
+                    for (const el of document.getElementsByClassName("inactive-session-action")) {
+                        el.hidden = active
+                    }
+        
+                    let admin = checkAdmin()
+                    
+                    for (const el of document.getElementsByClassName("admin-action")) {
+                        el.hidden = !admin
+                    }
+                } catch {}
+                await sleep(10000)
             }
         }
         onstart()

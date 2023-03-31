@@ -28,13 +28,14 @@
         </table>
         <input type="text" name="address" id="address" placeholder="Il tuo indirizzo" maxlength="40" class="login-button">
         <input type="button" value="Acquista" id="buy-button" class="login-button" onclick="acquista()">
+        <input type="button" name="svuota" id="svuota-button" class="login-button" value="Svuota carrello" onclick="svuota()">
         <br>
         <div class="login-block">
             <h2 id="alert"></h2>
             <h2 id="alert-good"></h2>
         </div>
     </div>
-    <div id="action-prefab"><button onclick="highercount(this)">+</button> <button onclick="lowercount(this)">-</button> <button onclick="removeitem(this)">x</button></div> <!-- ← AZIONI  -->
+    <div id="action-prefab"><button onclick="highercount(this)"><img style="width: 20px;" src="cart-plus.png" alt="+"></button> <button onclick="lowercount(this)"><img style="width: 20px;" src="cart-minus.png" alt="-"></button> <button onclick="removeitem(this)"><img style="width: 20px;" src="cart-remove.png" alt="X"></button></div> <!-- ← AZIONI  -->
     <script>
         table()
     </script>

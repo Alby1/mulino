@@ -70,8 +70,10 @@ async function table() {
     
 
     let bb = document.getElementById("buy-button")
+    let sb = document.getElementById("svuota-button")
     let adr = document.getElementById("address")
     bb.disabled = table.children.length == 0
+    sb.disabled = table.children.length == 0
     adr.disabled = table.children.length == 0
 }
 
@@ -102,5 +104,10 @@ async function acquista() {
     localStorage.removeItem("cart")
     alert_good.innerHTML = "Acquisto avvenuto con successo (attendere...)"
     await sleep(5000)
+    window.location.reload()
+}
+
+function svuota() {
+    localStorage.removeItem("cart")
     window.location.reload()
 }
