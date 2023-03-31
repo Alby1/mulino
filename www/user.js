@@ -24,6 +24,7 @@ function logout() {
     localStorage.removeItem("username")
     localStorage.removeItem("token")
     localStorage.removeItem("admin")
+    localStorage.removeItem("cart")
 }
 
 function checkAdmin() {

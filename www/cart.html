@@ -26,7 +26,13 @@
             </thead>
             <tbody id="cart"></tbody>
         </table>
+        <input type="text" name="address" id="address" placeholder="Il tuo indirizzo" maxlength="40" class="login-button">
         <input type="button" value="Acquista" id="buy-button" class="login-button" onclick="acquista()">
+        <br>
+        <div class="login-block">
+            <h2 id="alert"></h2>
+            <h2 id="alert-good"></h2>
+        </div>
     </div>
     <div id="action-prefab"><button onclick="highercount(this)">+</button> <button onclick="lowercount(this)">-</button> <button onclick="removeitem(this)">x</button></div> <!-- ← AZIONI  -->
     <script>

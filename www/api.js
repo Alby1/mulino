@@ -173,7 +173,6 @@ async function net_check_product_availability(id) {
 }
 
 async function net_buy_products(cart) {
-    console.log(JSON.stringify(cart))
     return await fetch(`${base_uri()}/api/products/buy`, {
         method: 'POST',
         headers: {

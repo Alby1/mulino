@@ -64,8 +64,10 @@ class API():
         nome: str = None
         costo: int = None 
         quantita: int = None
-        count: int = None
+
         token: str = None
+        count: int = None
+        address: str = None
     
 
     def is_user_admin(db, token):
@@ -148,16 +150,23 @@ async def api_products_availability(id: int = None):
 @app.post("/api/products/buy")
 async def api_products_buy(products: list[API.Product]):
     global db
+
+    if products.__len__() == 0:
+        return "product list is empty"
     
-    for pr in products:
-        if(not db.check_session(pr.token)):
-            return "token not valid"
-        prdb = db.get_product_by_id(pr.id)
-        if(prdb.quantita - pr.count <= 0):
-            return "troppi oggetti"
-        
-        prdb.quantita -= pr.count
-        db.update_product(product=prdb)
+    if(not db.check_session(products[0].token)):
+        return "token not valid"
+    
+    fattura = db.add_fattura(db.get_user_by_token(products[0].token).id, products[0].address )
+    if fattura:
+        for pr in products:
+            prdb = db.get_product_by_id(pr.id)
+            if(prdb.quantita - pr.count <= 0):
+                return f"troppi {pr.nome}, massimo è {prdb.quantita}"
+            
+            db.add_fattura_prodotto(fattura, pr.id)
+            prdb.quantita -= pr.count
+            db.update_product(product=prdb)
 
 
 
@@ -364,6 +373,44 @@ class DB_Service():
         except Exception as e: print(e)
         finally: s.close()
         return "ok"
+    
+
+
+    def add_fattura(self, user : int = None, indirizzo : str = None, fattura : Fattura = None) -> int:
+        s = self.session()
+        
+        i = False
+        try:
+            if user is not None:
+                f = self.Fattura(user=user, indirizzo=indirizzo)
+                s.add(f)
+                s.commit()
+                i = f.id
+        
+            if fattura is None:
+                return "no data"
+            
+            s.add(fattura)
+            s.commit()
+            i = fattura.id
+        except: pass
+        finally: 
+            s.close()
+            return i
+        
+    def add_fattura_prodotto(self, fattura: int, prodotto: int):
+        s = self.session()
+
+        i = False
+        try:
+            fp = self.FatturaProdotto(fattura=fattura, prodotto=prodotto)
+            s.add(fp)
+            s.commit()
+            i = fp.id
+        except: pass
+        finally:
+            s.close()
+            return i
     
 
         

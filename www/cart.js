@@ -42,38 +42,65 @@ async function table() {
     table.id = "cart"
     
     let cart = JSON.parse(localStorage.getItem("cart"))
+    if(cart) {
+        for (const obj of cart) {
+            if(obj.count > 0) {
+                let tr = document.createElement("tr")
+                tr.id = obj.id
+                
+                let td = document.createElement("td")
+                td.innerHTML = obj.nome
+                tr.appendChild(td)
     
-    for (const obj of cart) {
-        if(obj.count > 0) {
-            let tr = document.createElement("tr")
-            tr.id = obj.id
-            
-            let td = document.createElement("td")
-            td.innerHTML = obj.nome
-            tr.appendChild(td)
-
-            td = document.createElement("td")
-            td.innerHTML = obj.count
-            tr.appendChild(td)
-
-            td = document.createElement("td")
-            td.innerHTML = document.getElementById("action-prefab").innerHTML
-            td.id = obj.id
-
-            tr.appendChild(td)
-            
-            table.appendChild(tr)
+                td = document.createElement("td")
+                td.innerHTML = obj.count
+                tr.appendChild(td)
+    
+                td = document.createElement("td")
+                td.innerHTML = document.getElementById("action-prefab").innerHTML
+                td.id = obj.id
+    
+                tr.appendChild(td)
+                
+                table.appendChild(tr)
+            }
         }
+        table_.replaceWith(table)
     }
-    table_.replaceWith(table)
+    
 
     let bb = document.getElementById("buy-button")
+    let adr = document.getElementById("address")
     bb.disabled = table.children.length == 0
+    adr.disabled = table.children.length == 0
 }
 
 async function acquista() {
-    let cart = JSON.parse(localStorage.getItem("cart"))
-    let token = localStorage.getItem("token")
+    let bb = document.getElementById("buy-button")
+    bb.disabled = true
+    let alert = document.getElementById("alert")
+    let alert_good = document.getElementById("alert-good")
+    alert.innerHTML = ""
+    alert_good.innerHTML = ""
 
-    console.log(await net_buy_products(cart, token))
+    let cart = JSON.parse(localStorage.getItem("cart"))
+    let adr = document.getElementById("address")
+    if(adr.value.length == 0){
+        alert.innerHTML = "L'indirizzo non può essere vuoto"
+        bb.disabled = false
+        return
+    }
+
+    cart[0].address = adr.value
+    let token = localStorage.getItem("token")
+    
+    let buy = await net_buy_products(cart, token)
+    if(buy) {
+        alert.innerHTML = buy
+        return
+    }
+    localStorage.removeItem("cart")
+    alert_good.innerHTML = "Acquisto avvenuto con successo (attendere...)"
+    await sleep(5000)
+    window.location.reload()
 }
