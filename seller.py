@@ -583,8 +583,10 @@ class DB_Service():
             return ret
 
 
+MAIN_PORT = 9400
+
 def get_port():
-    p = requests.get(f'http://localhost:9000/port?seller={argv[1]}')
+    p = requests.get(f'http://localhost:{MAIN_PORT}/port?seller={argv[1]}')
     return int(p.text)
 
 def sync_main():
@@ -592,15 +594,15 @@ def sync_main():
         global db
         ps = db.get_products()
         data = json.dumps(ps, cls=AlchemyEncoder)
-        r = requests.post(f"http://localhost:9000/products?seller={argv[1]}", data=data)
+        r = requests.post(f"http://localhost:{MAIN_PORT}/products?seller={argv[1]}", data=data)
 
         us = db.get_users()
         data = json.dumps(us, cls=AlchemyEncoder)
 
-        r = requests.post(f"http://localhost:9000/users_s?seller={argv[1]}", data=data)
+        r = requests.post(f"http://localhost:{MAIN_PORT}/users_s?seller={argv[1]}", data=data)
 
 
-        r = requests.post(f"http://localhost:9000/users_r", data=data)
+        r = requests.post(f"http://localhost:{MAIN_PORT}/users_r", data=data)
 
         for u in json.loads(r.json()):
             try:
@@ -610,10 +612,10 @@ def sync_main():
                 pass
 
         data = json.dumps(db.get_fatture(), cls=AlchemyEncoder)
-        r = requests.post(f"http://localhost:9000/fatture_s?seller={argv[1]}", data=data)
+        r = requests.post(f"http://localhost:{MAIN_PORT}/fatture_s?seller={argv[1]}", data=data)
 
         data = json.dumps(db.get_fatture_prodotti(), cls=AlchemyEncoder)
-        r = requests.post(f"http://localhost:9000/fatture_prodotti_s?seller={argv[1]}", data=data)
+        r = requests.post(f"http://localhost:{MAIN_PORT}/fatture_prodotti_s?seller={argv[1]}", data=data)
     except Exception as es:
         print(es)
         print("can't sync")

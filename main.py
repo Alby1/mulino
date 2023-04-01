@@ -208,7 +208,7 @@ class DB_Service():
                 return q.first().port
 
         a = s.query(self.Seller).order_by(desc(self.Seller.port))
-        p = 9000
+        p = 9400
 
         if (a.count() != 0):
             p = int(a.first().port)
@@ -714,5 +714,5 @@ app.add_route("/{path:path}",
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=9000,
+    uvicorn.run("main:app", host="0.0.0.0", port=9400,
                 log_level="info", reload=True)
