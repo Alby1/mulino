@@ -586,8 +586,15 @@ class DB_Service():
 MAIN_PORT = 9400
 
 def get_port():
-    p = requests.get(f'http://localhost:{MAIN_PORT}/port?seller={argv[1]}')
-    return int(p.text)
+    ret = 0
+    while ret > -1:
+        try:
+            p = requests.get(f'http://localhost:{MAIN_PORT}/port?seller={argv[1]}')
+            return int(p.text)
+        except:
+            time.sleep(0.25 * ret)
+            ret += 1
+
 
 def sync_main():
     try:
