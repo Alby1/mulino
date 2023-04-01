@@ -10,11 +10,10 @@
         <a href="/admin/" class="products-login">Admin</a>
     </div>
     
-    <div class="products-main">
+    <div class="status-main">
         
         {% for s in sellers -%}
-        <a href="http://localhost:9000/{{ s.nome }}">{{ s.nome }}</a> 
-        <br>
+        <a href="http://localhost:9000/{{ s.nome }}">{{ s.nome }}</a>
         {% endfor %}
     </div>
 </body>

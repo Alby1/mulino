@@ -40,6 +40,47 @@ body {
   flex-direction: row;
   gap: 15px;
   justify-content: space-between;
+  align-items: center;
+}
+
+.login-row input[type=text], .login-row input[type=password], .login-row input[type=number] {
+  padding: 5px;
+  justify-self: flex-end;
+  transition: .2s;
+}
+
+.login-row input[type=text]:focus, .login-row input[type=password]:focus, .login-row input[type=number]:focus {
+  background-color: lightcyan;
+  border-color: aqua;
+  transition: .1s;
+}
+
+.login-row input[type=text]:active, .login-row input[type=password]:active, .login-row input[type=number]:active {
+  background-color: lightblue;
+  transition: .1s;
+}
+
+.login-row input[type=button] {
+  padding: 1vh 1vw;
+  background-color: beige;
+  border-radius: 10px;
+  border-color: aquamarine;
+  transition: .2s;
+}
+
+.login-row input[type=button]:hover {
+  background-color: cadetblue;
+  transition: .1s;
+}
+
+.login-row input[type=button]:active {
+  background-color: #357579;
+  transition: .1s;
+}
+
+.login-row label {
+  justify-self: flex-start;
+  user-select: none;
 }
 
 .login-block {
@@ -48,10 +89,6 @@ body {
   gap: -15px;
   justify-content: space-between;
   align-items: center;
-}
-
-.login-button {
-  padding: 1vh 1vw;
 }
 
 .products-main {
@@ -73,10 +110,42 @@ body {
   gap: 0px;
 }
 
-.products-login {
+.status-main{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-main a {
+  text-decoration: none;
+  color: darkblue;
+  font-size: 25px;
+  transition: .3s;
   padding: 10px;
-  background-color: darkgray;
+  user-select: none;
+  text-transform: capitalize;
+}
+
+.status-main a:hover {
+  color: darkcyan;
+  font-size: 30px;
+  transition: .3s;
+}
+
+.products-login{
+  text-decoration: none;
+  color: darkblue;
+  background-color: beige;
+  transition: .3s;
   border-radius: 10px;
+  padding: 10px;
+}
+
+.products-login:hover {
+  color: darkcyan;
+  transition: .1s;
 }
 
 #alert{

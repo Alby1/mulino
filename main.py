@@ -2,12 +2,13 @@ import random
 import string
 import time
 import uvicorn
+import datetime
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.responses import RedirectResponse, FileResponse, Response
 
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, desc
 from sqlalchemy_utils import database_exists, create_database
@@ -578,7 +579,6 @@ def fa_p_fatture_prodotti_s(fatture: list[API.FatturaProdotto], seller: str):
 @app.get("/")
 async def index(request: Request):
     global templates
-
     active_sellers = []
     for sl in db.get_sellers():
         try:
@@ -671,6 +671,9 @@ async def _reverse_proxy(request: StarletteRequest):
 
     url = httpx.URL(path=path,
                     query=request.url.query.encode("utf-8"))
+    
+    if(nome == "favicon.ico"):
+        return FileResponse("www/favicon.png")
 
     if (path.__len__() == 0):
         if(nome.endswith(".js") or nome.endswith(".html") or nome.endswith(".css")):

@@ -80,11 +80,11 @@
                 let tr = document.createElement("tr")
 
                 let id = document.createElement("td")
-                id.innerHTML = user.id
+                id.innerHTML = decodeURI(user.id)
                 tr.appendChild(id)
 
                 let nome = document.createElement("td")
-                nome.innerHTML = user.user
+                nome.innerHTML = decodeURI(user.user)
                 tr.appendChild(nome)
 
                 let livello = document.createElement("td")
