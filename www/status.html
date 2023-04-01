@@ -5,10 +5,17 @@
     <link href="{{ url_for('www', path='/style.css') }}" rel="stylesheet">
 </head>
 <body>
-    <h1>Venditori disponibili</h1>
-    {% for s in sellers -%}
-    <a href="http://localhost:9000/{{ s.nome }}">{{ s.nome }}</a> 
-    <br>
-    {% endfor %}
+    <div class="products-title">
+        <h1>Venditori disponibili</h1>
+        <a href="/admin/" class="products-login">Admin</a>
+    </div>
+    
+    <div class="products-main">
+        
+        {% for s in sellers -%}
+        <a href="http://localhost:9000/{{ s.nome }}">{{ s.nome }}</a> 
+        <br>
+        {% endfor %}
+    </div>
 </body>
 </html>

@@ -1,5 +1,5 @@
 async function highercount(e) {
-    let cart = JSON.parse(localStorage.getItem("cart"))
+    let cart = JSON.parse(localStorage.getItem(`${get_domain()}-cart`))
     let id = e.parentNode.id
     
     for (const c of cart) {
@@ -8,31 +8,31 @@ async function highercount(e) {
             if(c.count < max) c.count += 1
         }
     }
-    localStorage.setItem("cart", JSON.stringify(cart))
+    localStorage.setItem(`${get_domain()}-cart`, JSON.stringify(cart))
     table()
 }
 
 function lowercount(e) {
-    let cart = JSON.parse(localStorage.getItem("cart"))
+    let cart = JSON.parse(localStorage.getItem(`${get_domain()}-cart`))
     let id = e.parentNode.id
     for (const c of cart) {
         if(c.id == id && c.count > 1) {
             c.count -= 1
         }
     }
-    localStorage.setItem("cart", JSON.stringify(cart))
+    localStorage.setItem(`${get_domain()}-cart`, JSON.stringify(cart))
     table()
 }
 
 function removeitem(e) {
-    let cart = JSON.parse(localStorage.getItem("cart"))
+    let cart = JSON.parse(localStorage.getItem(`${get_domain()}-cart`))
     let id = e.parentNode.id
     for (const c of cart) {
         if(c.id == id) {
             c.count = 0
         }
     }
-    localStorage.setItem("cart", JSON.stringify(cart))
+    localStorage.setItem(`${get_domain()}-cart`, JSON.stringify(cart))
     table()
 }
 
@@ -41,7 +41,7 @@ async function table() {
     let table = document.createElement("tbody")
     table.id = "cart"
     
-    let cart = JSON.parse(localStorage.getItem("cart"))
+    let cart = JSON.parse(localStorage.getItem(`${get_domain()}-cart`))
     if(cart) {
         for (const obj of cart) {
             if(obj.count > 0) {
@@ -85,7 +85,7 @@ async function acquista() {
     alert.innerHTML = ""
     alert_good.innerHTML = ""
 
-    let cart = JSON.parse(localStorage.getItem("cart"))
+    let cart = JSON.parse(localStorage.getItem(`${get_domain()}-cart`))
     let adr = document.getElementById("address")
     if(adr.value.length == 0){
         alert.innerHTML = "L'indirizzo non può essere vuoto"
@@ -94,20 +94,20 @@ async function acquista() {
     }
 
     cart[0].address = adr.value
-    let token = localStorage.getItem("token")
+    let token = localStorage.getItem(`${get_domain()}-token`)
     
     let buy = await net_buy_products(cart, token)
     if(buy) {
         alert.innerHTML = buy
         return
     }
-    localStorage.removeItem("cart")
+    localStorage.removeItem(`${get_domain()}-cart`)
     alert_good.innerHTML = "Acquisto avvenuto con successo (attendere...)"
     await sleep(5000)
     window.location.reload()
 }
 
 function svuota() {
-    localStorage.removeItem("cart")
+    localStorage.removeItem(`${get_domain()}-cart`)
     window.location.reload()
 }

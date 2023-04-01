@@ -68,6 +68,12 @@ class API():
         token: str = None
         count: int = None
         address: str = None
+
+    class Fattura(BaseModel):
+        id: int = None
+        user: str = None
+        indirizzo: str = None
+
     
 
     def is_user_admin(db, token):
@@ -172,7 +178,7 @@ async def api_products_buy(products: list[API.Product]):
 async def all_fatture(token):
     global db
     if(not API.is_user_admin(db, token)):
-        return json.dumps([{"user" : "YOU ARE", "oggetti": [{"nome": "", "count" : 0}], "address" : "ADMIN"}])
+        return json.dumps([{"user" : "YOU ARE NOT", "oggetti": [{"nome": "", "count" : 0, "unitario" : 0}], "address" : "ADMIN"}])
 
     fatture = db.get_fatture()
     ret = []
@@ -181,8 +187,8 @@ async def all_fatture(token):
         fpj = []
         for g in fp:
             p = db.get_product_by_id(g.prodotto)
-            fpj.append({"nome" : p.nome, "count" : g.quantita})
-            us = db.get_user_by_id(r.user)
+            fpj.append({"nome" : p.nome, "count" : g.quantita, "unitario" : g.unitario})
+            us = db.get_user_by_user(r.user)
         ret.append({"user" : f"{us.user} ({us.id})", "address": r.indirizzo, "oggetti": fpj})
     return json.dumps(ret)
 
@@ -206,8 +212,8 @@ def api_users_login(login: API.Login):
 
     global db
     lg, ad = db.login(user, password)
-    if(lg is None):
-        return {"status" : "bad"}
+    if(not lg):
+        return {"status" : "bad", "message" : ad}
     return {"status" : "ok", "token" : lg, "admin" : ad}
 
 
@@ -299,7 +305,7 @@ class DB_Service():
     class Fattura(Base):
         __tablename__ = 'fatture'
         id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
-        user = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+        user = Column(String(45), ForeignKey("utenti.user"), nullable=False)
         indirizzo = Column(String(40), nullable=False)
 
         utente_ = relationship("Utente", back_populates="fatture_")
@@ -402,7 +408,8 @@ class DB_Service():
         i = False
         try:
             if user is not None:
-                f = self.Fattura(user=user, indirizzo=indirizzo)
+                
+                f = self.Fattura(user=db.get_user_by_id(user).user, indirizzo=indirizzo)
                 s.add(f)
                 s.commit()
                 i = f.id
@@ -500,8 +507,11 @@ class DB_Service():
         if(q.count() == 0): return None
         return q.first()
     
-    def login(self, user, password):
+    def login(self, user: str, password: str):
         s = self.session()
+        if(user.__len__() == 0): return False, "Nome utente vuoto"
+        if(password.__len__() == 0): return False, "Password vuota"
+        if(not db.user_exists(user)): return False, "Utente inesistente"
         try:
             letters = string.ascii_lowercase
             result_str = ''.join(random.choice(letters) for i in range(20))
@@ -512,7 +522,7 @@ class DB_Service():
 
             if(w.count() == 0):
                 s.close()
-                return None
+                return False, "Password incorretta"
 
             admin = False
 
@@ -559,6 +569,18 @@ class DB_Service():
         finally:
             s.close()
             return ret
+        
+
+    def get_user_by_user(self, user: str) -> Utente:
+        s = self.session()
+        ret = False
+        try:
+            q = s.query(self.Utente).filter(self.Utente.user == user)
+            ret = q.first()
+        except: pass
+        finally:
+            s.close()
+            return ret
 
 
 def get_port():
@@ -587,14 +609,13 @@ def sync_main():
                 # print(e)
                 pass
 
-        # TODO: inviare fatture a server centrale
         data = json.dumps(db.get_fatture(), cls=AlchemyEncoder)
         r = requests.post(f"http://localhost:9000/fatture_s?seller={argv[1]}", data=data)
 
         data = json.dumps(db.get_fatture_prodotti(), cls=AlchemyEncoder)
         r = requests.post(f"http://localhost:9000/fatture_prodotti_s?seller={argv[1]}", data=data)
     except Exception as es:
-        # print(es)
+        print(es)
         print("can't sync")
 
 
@@ -602,7 +623,7 @@ def sync_thread():
     try:
         while True:
             sync_main()
-            time.sleep(2.5)
+            time.sleep(5)
     except KeyboardInterrupt:
         return
     

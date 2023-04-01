@@ -53,11 +53,11 @@ async function products() {
         img.src = "cart-plus.png"
         img.style = "width: 25px;"
         btn.appendChild(img)
-        td.classList.add("active-session-action")
+        td_.classList.add("active-session-action")
         
         
         if(parseInt(prod["quantita"]) != 0) td.appendChild(btn)
-        let cart = JSON.parse(localStorage.getItem("cart"))
+        let cart = JSON.parse(localStorage.getItem(`${get_domain()}-cart`))
         if(cart) {
             let cart_i = document.createElement("p")
             cart_i.innerHTML = "(0)"
@@ -95,7 +95,7 @@ async function products() {
 
 async function mettiNelCarrello(e) {
     let done = false
-    let cart = JSON.parse(localStorage.getItem("cart"))
+    let cart = JSON.parse(localStorage.getItem(`${get_domain()}-cart`))
     if(cart == null) cart = []
     let element
     if(e.target.tagName == "IMG") {element = e.target.parentNode}
@@ -108,14 +108,14 @@ async function mettiNelCarrello(e) {
         }
     }
     if(!done) {
-        cart.push({"id" : element.id, "count" : 1, "nome" : element.parentNode.parentNode.parentNode.firstChild.firstChild.innerHTML, "token" : localStorage.getItem("token")})
+        cart.push({"id" : element.id, "count" : 1, "nome" : element.parentNode.parentNode.parentNode.firstChild.firstChild.innerHTML, "token" : localStorage.getItem(`${get_domain()}-token`)})
     }
-    localStorage.setItem("cart", JSON.stringify(cart))
+    localStorage.setItem(`${get_domain()}-cart`, JSON.stringify(cart))
     products()
 }
 
 async function elimina(e) {
-    await net_delete_product(e.target.id, localStorage.getItem("token"))
+    await net_delete_product(e.target.id, localStorage.getItem(`${get_domain()}-token`))
     window.location.reload()
 }
 
@@ -156,7 +156,7 @@ async function abilita_modifica() {
                 any_changed=true
 
                 let id = input.parentNode.parentNode.id
-                let token = localStorage.getItem("token")
+                let token = localStorage.getItem(`${get_domain()}-token`)
                 let value = input.id
 
                 if(value == "nome") await net_update_product(token, id, nome=input.value)
@@ -175,10 +175,10 @@ async function abilita_modifica() {
 }
 
 async function invia_prodotto() {
-    checkAdmin()
+    if(! await checkAdmin() ) return
     let nome = document.getElementById("nome").value
     let costo = document.getElementById("costo").value
     let quantita = document.getElementById("quantita").value
-    let token = localStorage.getItem("token")
+    let token = localStorage.getItem(`${get_domain()}-token`)
     net_add_product(nome, parseInt(costo), parseInt(quantita), token)
 }

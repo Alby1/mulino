@@ -1,10 +1,13 @@
+import random
+import string
+import time
 import uvicorn
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, desc
 from sqlalchemy_utils import database_exists, create_database
@@ -52,6 +55,9 @@ class API():
         quantita: int
         prezzo: int
         registry: str | None
+    class Login(BaseModel):
+        user: str
+        password: str
 
     class User(BaseModel):
         id: int
@@ -59,6 +65,8 @@ class API():
         password: str
         admin: bool
         registry: str | None
+    class Token(BaseModel):
+        token: str
 
     class Fattura(BaseModel):
         id: int
@@ -74,6 +82,14 @@ class API():
         where: int = None
 
 
+    def is_user_admin(db, token):
+        if(token == "null"): return False
+        user = db.get_user_by_token(token)
+        if(user is not None):
+            return user.admin
+        return False
+
+
 class DB_Service():
     Base = declarative_base()
 
@@ -85,10 +101,14 @@ class DB_Service():
         prezzo = Column(INTEGER(unsigned=True), nullable=False)
         quantita = Column(INTEGER(unsigned=True), nullable=False)
         where = Column(Integer, ForeignKey("venditori.id"))
+        local_id = Column(Integer, nullable=False)
 
         venditore_ = relationship("Seller", back_populates="prodotti_")
         fattureprodotti_ = relationship(
             "FatturaProdotto", back_populates="prodotto_")
+        
+        def __repr__(self):
+            return f"{self.id} {self.nome} {self.prezzo} {self.quantita} {self.where} {self.local_id}"
 
     class Utente(Base):
         __tablename__ = 'utenti'
@@ -97,6 +117,7 @@ class DB_Service():
         user = Column(String(45), unique=True, nullable=False)
         password = Column(String(45), nullable=False)
         admin = Column(Boolean())
+        token = Column(String(20), unique=True)
         where = Column(Integer, ForeignKey("venditori.id"))
 
         venditore_ = relationship("Seller", back_populates="utenti_")
@@ -117,14 +138,18 @@ class DB_Service():
         __tablename__ = 'fatture'
         id = Column(Integer, primary_key=True,
                     nullable=False, autoincrement=True)
-        user = Column(Integer, ForeignKey("utenti.id"), nullable=False)
+        user = Column(String(45), ForeignKey("utenti.user"), nullable=False)
         indirizzo = Column(String(40), nullable=False)
         where = Column(Integer, ForeignKey("venditori.id"))
+        local_id = Column(Integer, nullable=False)
 
         venditore_ = relationship("Seller", back_populates="fatture_")
         utente_ = relationship("Utente", back_populates="fatture_")
         fattureprodotti_ = relationship(
             "FatturaProdotto", back_populates="fattura_")
+        
+        def __repr__(self):
+            return f"{self.user} {self.where} {self.local_id}"
 
     class FatturaProdotto(Base):
         __tablename__ = 'fatture_prodotti'
@@ -135,9 +160,13 @@ class DB_Service():
         quantita = Column(Integer, nullable=False)
         unitario = Column(Integer, nullable=False)
         where = Column(Integer, ForeignKey("venditori.id"))
+        local_id = Column(Integer, nullable=False)
 
         fattura_ = relationship("Fattura", back_populates="fattureprodotti_")
         prodotto_ = relationship("Prodotto", back_populates="fattureprodotti_")
+
+        def __repr__(self) -> str:
+            return f"{self.fattura} {self.prodotto} {self.quantita} {self.unitario} {self.where} {self.local_id}"
 
     def __init__(self):
         self.protocol = "mysql+pymysql"
@@ -205,7 +234,7 @@ class DB_Service():
 
         except:
             pa = self.Prodotto(
-                nome=p.nome, quantita=p.quantita, prezzo=p.prezzo, where=w)
+                nome=p.nome, quantita=p.quantita, prezzo=p.prezzo, where=w, local_id=p.id)
 
             s.add(pa)
             s.commit()
@@ -287,6 +316,17 @@ class DB_Service():
         finally:
             s.close()
 
+    def get_fattura_by_local_id_and_where(self, id: int, where : int) -> Fattura | Boolean:
+        s = self.session()
+        q = False
+        try:
+            q = s.query(self.Fattura).filter(self.Fattura.local_id == id).filter(self.Fattura.where == where)
+            ret = q.first()
+        except: pass
+        finally:
+            s.close()
+            return ret
+
     def fatture_prodotti_s(self, fatture: list[FatturaProdotto]):
         s = self.session()
         try:
@@ -296,6 +336,17 @@ class DB_Service():
             print(e)
         finally:
             s.close()
+
+    def get_fattura_prodotto_by_local_id_and_where(self, id: int, where : int) -> FatturaProdotto | Boolean:
+        s = self.session()
+        q = False
+        try:
+            q = s.query(self.FatturaProdotto).filter(self.FatturaProdotto.local_id == id).filter(self.FatturaProdotto.where == where)
+            ret = q.first()
+        except: pass
+        finally:
+            s.close()
+            return ret
 
     def get_venditore_by_name(self, name) -> Seller:
         s = self.session()
@@ -308,7 +359,137 @@ class DB_Service():
         finally:
             s.close()
             return ret
+        
+    def get_user_by_token(self, token):
+        s = self.session()
+        try:
+            q = s.query(self.Utente).filter(self.Utente.token == token)
+        except Exception as e: print(e)
+        finally: s.close()
+        if(q.count() == 0): return None
+        return q.first()
+    
+    def login(self, user, password):
+        s = self.session()
+        try:
+            letters = string.ascii_lowercase
+            result_str = ''.join(random.choice(letters) for i in range(20))
 
+            w = s.query(self.Utente).filter(self.Utente.user == user).filter(self.Utente.password == password)
+
+            u = w.first()
+
+            if(w.count() == 0):
+                s.close()
+                return None
+
+            admin = False
+
+            cycles = 1
+            while cycles > 0:
+                try:
+                    u.token = result_str
+                    admin = u.admin
+
+                    s.commit()
+
+                    cycles = -1
+                except Exception as e:
+                    if(cycles >= 5):
+                        print(e)
+                        break
+                    cycles += 1
+                    time.sleep(0.1 * cycles)
+        except: pass
+        finally: s.close()
+        
+        return result_str, admin
+    
+    def get_fatture(self) -> list[Fattura]:
+        s = self.session()
+        f = s.query(self.Fattura)
+        s.close()
+        return f.all()
+    
+    def get_fatture_prodotti_by_fattura_id(self, id) -> list[FatturaProdotto]:
+        s = self.session()
+        ret = False
+        try:
+            q = s.query(self.FatturaProdotto).filter(self.FatturaProdotto.fattura == id)
+            ret = q.all()
+        except: pass
+        finally: 
+            s.close()
+            return ret
+        
+    def get_product_by_id(self, id) -> Prodotto:
+        session = self.session()
+        try:
+            q = session.query(self.Prodotto).filter(self.Prodotto.id == id)
+        except:pass
+        finally: session.close()
+
+        return q.first()
+    
+    def get_product_by_local_id_and_where(self, id : int, where : int) -> Prodotto:
+        session = self.session()
+        ret = False
+        try:
+            q = session.query(self.Prodotto).filter(self.Prodotto.local_id == id).filter(self.Prodotto.where == where)
+            ret = q.first()
+        except:pass
+        finally: session.close()
+
+        return ret
+    
+    def get_user_by_id(self, id: int) -> Utente:
+        s = self.session()
+        ret = False
+        try:
+            q = s.query(self.Utente).filter(self.Utente.id == id)
+            ret = q.first()
+        except: pass
+        finally:
+            s.close()
+            return ret
+        
+    
+    def get_user_by_user(self, user: str) -> Utente:
+        s = self.session()
+        ret = False
+        try:
+            q = s.query(self.Utente).filter(self.Utente.user == user)
+            ret = q.first()
+        except: pass
+        finally:
+            s.close()
+            return ret
+        
+    
+    
+    def check_session(self, token: str = None):
+        if(token is None): return False
+        s = self.session()
+        try:
+            q = s.query(self.Utente).filter(self.Utente.token == token)
+
+            if(q.count() != 0):
+                s.close()
+                return True
+        except: pass
+        finally: s.close()
+        return False
+    
+    def get_seller_by_id(self, id) -> Seller:
+        s = self.session()
+        ret = False
+        try:
+            q = s.query(self.Seller).filter(self.Seller.id == id)
+            ret = q.first()
+        except: pass
+        finally:
+            s.close()
+            return ret
 
 app = FastAPI()
 
@@ -368,8 +549,12 @@ def fa_p_fatture_s(fatture: list[API.Fattura], seller: str):
     f = []
     where = db.get_venditore_by_name(seller).id
     for p in fatture:
+        old = db.get_fattura_by_local_id_and_where(p.id, where)
+        if(old):
+            if(old.local_id == p.id and old.where == where):
+                continue
         f.append(DB_Service.Fattura(
-            user=p.user, indirizzo=p.indirizzo, where=where))
+        user=p.user, indirizzo=p.indirizzo, where=where, local_id=p.id))
     db.fatture_s(f)
 
 
@@ -379,14 +564,19 @@ def fa_p_fatture_prodotti_s(fatture: list[API.FatturaProdotto], seller: str):
     f = []
     where = db.get_venditore_by_name(seller).id
     for p in fatture:
-
-        f.append(DB_Service.FatturaProdotto(fattura=p.fattura, prodotto=p.prodotto,
-                 quantita=p.quantita, unitario=p.unitario, where=where))
+        old = db.get_fattura_prodotto_by_local_id_and_where(p.id, where)
+        ft = db.get_fattura_by_local_id_and_where(p.fattura, where)
+        pr = db.get_product_by_local_id_and_where(p.prodotto, where)
+        if(old):
+            if(old.local_id == p.id and old.where == where):
+                continue
+        f.append(DB_Service.FatturaProdotto(fattura=ft.id, prodotto=pr.id,
+                quantita=p.quantita, unitario=p.unitario, where=where, local_id=p.id))
     db.fatture_prodotti_s(f)
 
 
 @app.get("/")
-def index(request: Request):
+async def index(request: Request):
     global templates
 
     active_sellers = []
@@ -400,6 +590,60 @@ def index(request: Request):
             continue
 
     return templates.TemplateResponse("status.html", {"request": request, "sellers": active_sellers})
+
+@app.get("/admin")
+async def admin():
+    return FileResponse("www/main-admin.html")
+
+@app.get("/admin/")
+async def admin():
+    return FileResponse("www/main-admin.html")
+
+@app.get("/admin/login")
+async def admin():
+    return FileResponse("www/login.html")
+
+@app.get("/api/fatture")
+async def all_fatture(token):
+    global db
+    if(not API.is_user_admin(db, token)):
+        return json.dumps([{"user" : "YOU ARE NOT", "oggetti": [{"nome": "", "count" : 0, "unitario" : 0}], "address" : "ADMIN"}])
+
+    fatture = db.get_fatture()
+    ret = []
+    for r in fatture:
+        fp = db.get_fatture_prodotti_by_fattura_id(r.id)
+        fpj = []
+        for g in fp:
+            p = db.get_product_by_id(g.prodotto)
+            fpj.append({"nome" : p.nome, "count" : g.quantita, "unitario" : g.unitario})
+            us = db.get_user_by_user(r.user)
+            sl = db.get_seller_by_id(r.where)
+        ret.append({"user" : f"{us.user} ({us.id})", "address": r.indirizzo, "oggetti": fpj, "dove" : sl.nome})
+        if(ret.__len__() > 9): break
+    return json.dumps(ret)
+
+@app.post("/api/users/login")
+def api_users_login(login: API.Login):
+    user = login.user
+    password = login.password
+    if(user is None or password is None): return False
+
+    global db
+    lg, ad = db.login(user, password)
+    if(lg is None):
+        return {"status" : "bad"}
+    return {"status" : "ok", "token" : lg, "admin" : ad}
+
+@app.post("/api/users/check_session")
+def api_users_check_session(token: API.Token):
+    token = token.token
+    if(token is None): return {"status" : "no token"}
+    
+    global db
+    if(db.check_session(token)):
+        return {"status" : "ok"}
+    return {"status" : "bad"}
 
 
 app.mount("/static", StaticFiles(directory="www"), name="www")
@@ -429,7 +673,13 @@ async def _reverse_proxy(request: StarletteRequest):
                     query=request.url.query.encode("utf-8"))
 
     if (path.__len__() == 0):
+        if(nome.endswith(".js") or nome.endswith(".html") or nome.endswith(".css")):
+            return FileResponse(f"www/{nome}")
         return RedirectResponse(request.url.__str__() + "/")
+    
+    if (nome == "admin"):
+        if(path.endswith(".js") or path.endswith(".html") or path.endswith(".css")):
+            return FileResponse(f"www{path}")
 
     client = None
     for c in clients:

@@ -1,10 +1,12 @@
 function get_seller() {
-    return "{{ venditore }}"
+    let ven = "/{{ venditore }}"
+    if(ven == "/\{\{ venditore \}\}") return ""
+    return ven
 }
 
 function base_uri() {
     const v = get_seller()
-    return `${window.location.origin}/${v}`
+    return `${window.location.origin}${v}`
 }
 
 async function request_products() {

@@ -1,2 +1,2 @@
-python seller.py napoli
+python seller.py milano
 pause

@@ -54,7 +54,8 @@ sessione del carrello:
                     pr = products()
         
                     let active = await checkSession()
-                    document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${localStorage.getItem("username")}` : "You are not logged in")
+                    let username = localStorage.getItem(`${get_domain()}-username`)
+                    document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${username}` : "You are not logged in")
                     
                     await pr
                     for (const el of document.getElementsByClassName("active-session-action")) {
@@ -64,7 +65,7 @@ sessione del carrello:
                         el.hidden = active
                     }
         
-                    let admin = checkAdmin()
+                    let admin = await checkAdmin()
                     
                     for (const el of document.getElementsByClassName("admin-action")) {
                         el.hidden = !admin

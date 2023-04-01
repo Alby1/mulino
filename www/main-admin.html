@@ -15,43 +15,10 @@
 <body>
     <div class="products-main">
         <div class="products-title">
-            <a class="products-login" href="index.html">Indietro</a>
+            <a class="products-login" href="/">Indietro</a>
             <h1>Pannello amministratore</h1>
-        </div>
-        <div class="admin-flex">
-            <div class="admin-flex-box">
-                <h2>Aggiungi Prodotto</h2>
-                <div class="admin-flex-form">
-                    <div class="login-row">
-                        <label for="nome">Nome</label>
-                        <input type="text" id="nome">
-                    </div>
-                    <div class="login-row">
-                        <label for="costo">Costo</label>
-                        <input type="number" name="" id="costo" min="0">
-                    </div>
-                    <div class="login-row">
-                        <label for="quantita">Quantità</label>
-                        <input type="number" name="" id="quantita" min="0">
-                    </div>
-                    <div class="login-row">
-                        <input type="button" value="Conferma" onclick="invia_prodotto()">
-                    </div>
-                </div>
-            </div>
-            <div class="admin-flex-box">
-                <h2>Utenti</h2>
-                <table id="users" style="width: 95%;">
-                    <thead>
-                        <tr>
-                            <th>Id</th>
-                            <th>Nome</th>
-                            <th>Livello</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-b"></tbody>
-                </table>
-            </div>
+            <span id="you-are" class="products-title-side"></span>
+            <a class="products-login" href="/admin/login">Login</a>
         </div>
         <div class="admin-flex">
             <div class="admin-flex-box">
@@ -63,6 +30,7 @@
                             <th>Oggetti</th>
                             <th>Indirizzo</th>
                             <th>Totale</th>
+                            <th>Magazzino</th>
                         </tr>
                     </thead>
                     <tbody id="acquisti-table"></tbody>
@@ -72,33 +40,15 @@
     </div>
     <script>
         async function start() {
-            let users_table = document.getElementById("users-b")
+            let active = await checkSession()
+            let username = localStorage.getItem(`${get_domain()}-username`)
+            document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${username}` : "You are not logged in")
             let token = localStorage.getItem(`${get_domain()}-token`)
-            let us = JSON.parse(await net_all_users(token))
-            
-            for (const user of us) {
-                let tr = document.createElement("tr")
-
-                let id = document.createElement("td")
-                id.innerHTML = user.id
-                tr.appendChild(id)
-
-                let nome = document.createElement("td")
-                nome.innerHTML = user.user
-                tr.appendChild(nome)
-
-                let livello = document.createElement("td")
-                livello.innerHTML = (user.admin ? "Admin" : "Standard")
-                tr.appendChild(livello)
-
-                users_table.appendChild(tr)
-            }
-
-
             let acquisti_table = document.getElementById("acquisti-table")
             let acq = JSON.parse(await net_all_acquisti(token))
             
             for (const ac of acq) {
+                console.log(ac)
                 let tr = document.createElement("tr")
                 
                 let user = document.createElement("td")
@@ -120,6 +70,10 @@
                 let totale = document.createElement("td")
                 totale.innerHTML = `${tot}€`
                 tr.appendChild(totale)
+
+                let magazzino = document.createElement("td")
+                magazzino.innerHTML = decodeURI(ac.dove)
+                tr.appendChild(magazzino)
 
                 acquisti_table.appendChild(tr)
             }
