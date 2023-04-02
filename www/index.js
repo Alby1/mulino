@@ -124,6 +124,7 @@ function capitalizeFirstLetter(string) {
 }
 
 let modifica_attiva = false
+let prev_quant = []
 
 async function abilita_modifica() {
     let del_list = document.getElementsByClassName("delete-button")
@@ -141,6 +142,7 @@ async function abilita_modifica() {
                 e.target.classList.add("modified")
             })
             if(p.id == "quantita" || p.id == "prezzo") input.type = "number"
+            if(p.id == "quantita") prev_quant.push({"value" : p.innerHTML, "id" : p.parentNode.parentNode.id})
             input.id = p.id
             p.parentNode.replaceChild(input, p)
         }
@@ -157,11 +159,18 @@ async function abilita_modifica() {
 
                 let id = input.parentNode.parentNode.id
                 let token = localStorage.getItem(`${get_domain()}-token`)
-                let value = input.id
+                let type = input.id
+                let value = input.value
 
-                if(value == "nome") await net_update_product(token, id, nome=input.value)
-                if(value == "prezzo") await net_update_product(token, id, null, input.value)
-                if(value == "quantita") await net_update_product(token, id, null, null, input.value)
+                if(type == "nome") await net_update_product(token, id, value)
+                if(type == "prezzo") await net_update_product(token, id, null, value)
+                if(type == "quantita") {
+                    let pq = null
+                    for (const q of prev_quant) {
+                        if(q.id == id) pq = q
+                    }
+                    await net_update_product(token, id, null, null, parseInt(pq.value) - value)
+                }
             }
             p.innerHTML = input.value
             p.id = input.id
@@ -171,7 +180,6 @@ async function abilita_modifica() {
     } 
 
     modifica_attiva = !modifica_attiva
-
 }
 
 async function invia_prodotto() {

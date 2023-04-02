@@ -205,7 +205,7 @@ def all_users(token : str):
     return json.dumps([{"user" : "YOU ARE NOT", "admin" : True}])
 
 @app.post("/api/users/login")
-def api_users_login(login: API.Login):
+async def api_users_login(login: API.Login):
     user = login.user
     password = login.password
     if(user is None or password is None): return False
@@ -218,7 +218,7 @@ def api_users_login(login: API.Login):
 
 
 @app.post("/api/users/check_session")
-def api_users_check_session(token: API.Token):
+async def api_users_check_session(token: API.Token):
     token = token.token
     if(token is None): return {"status" : "no token"}
     
@@ -228,21 +228,21 @@ def api_users_check_session(token: API.Token):
     return {"status" : "bad"}
 
 @app.post("/api/users/register")
-def api_users_register(register : API.Login):
+async def api_users_register(register : API.Login):
     global db
     ok = db.add_user(register.user, register.password, False)
     if ok : return {"status" : "ok"}
     return {"status" : "bad"}
 
 @app.get("/api/users/already_exists")
-def api_users_already_exists(user: str):
+async def api_users_already_exists(user: str):
     global db
     return db.user_exists(user)
 
 
 
 @app.get("/status")
-def service_status():
+async def service_status():
     return True
 
 
@@ -381,7 +381,8 @@ class DB_Service():
 
             if nome is not None: q.nome = nome
             if costo is not None: q.prezzo = costo
-            if quantita is not None: q.quantita = quantita
+            print(quantita)
+            if quantita is not None: q.quantita -= quantita
 
             s.commit()
         except: pass

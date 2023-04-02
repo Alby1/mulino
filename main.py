@@ -511,7 +511,7 @@ async def startup():
 
 
 @app.get("/port")
-def fa_port(seller: str = None):
+async def fa_port(seller: str = None):
     if (seller is None):
         return "no seller provided"
     global db
@@ -519,7 +519,7 @@ def fa_port(seller: str = None):
 
 
 @app.post("/products")
-def fa_p_products(products: list[API.Product], seller: str | None = None):
+async def fa_p_products(products: list[API.Product], seller: str | None = None):
     if (seller is None):
         return False
     global db
@@ -528,7 +528,7 @@ def fa_p_products(products: list[API.Product], seller: str | None = None):
 
 
 @app.post("/users_s")
-def fa_p_users(users: list[API.User], seller: str | None = None):
+async def fa_p_users(users: list[API.User], seller: str | None = None):
     if (seller is None):
         return False
     global db
@@ -537,7 +537,7 @@ def fa_p_users(users: list[API.User], seller: str | None = None):
 
 
 @app.post("/users_r")
-def fa_p_users_r():
+async def fa_p_users_r():
     global db
     return json.dumps(db.get_users(), cls=AlchemyEncoder)
 
@@ -545,7 +545,7 @@ def fa_p_users_r():
 # TODO: (errore) ogni volta che invia dati crea una nuova riga.
 
 @app.post("/fatture_s")
-def fa_p_fatture_s(fatture: list[API.Fattura], seller: str):
+async def fa_p_fatture_s(fatture: list[API.Fattura], seller: str):
     global db
     f = []
     where = db.get_venditore_by_name(seller).id
@@ -560,7 +560,7 @@ def fa_p_fatture_s(fatture: list[API.Fattura], seller: str):
 
 
 @app.post("/fatture_prodotti_s")
-def fa_p_fatture_prodotti_s(fatture: list[API.FatturaProdotto], seller: str):
+async def fa_p_fatture_prodotti_s(fatture: list[API.FatturaProdotto], seller: str):
     global db
     f = []
     where = db.get_venditore_by_name(seller).id
@@ -624,7 +624,7 @@ async def all_fatture(token):
     return json.dumps(ret)
 
 @app.post("/api/users/login")
-def api_users_login(login: API.Login):
+async def api_users_login(login: API.Login):
     user = login.user
     password = login.password
     if(user is None or password is None): return False
@@ -636,7 +636,7 @@ def api_users_login(login: API.Login):
     return {"status" : "ok", "token" : lg, "admin" : ad}
 
 @app.post("/api/users/check_session")
-def api_users_check_session(token: API.Token):
+async def api_users_check_session(token: API.Token):
     token = token.token
     if(token is None): return {"status" : "no token"}
     

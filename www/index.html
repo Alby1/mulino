@@ -40,7 +40,8 @@ sessione del carrello:
                     <th>Prezzo</th>
                     <th>Quantita</th>
                     <th class="active-session-action">Aggiungi al carrello</th>
-                    <th class="admin-action"><button class="products-login" onclick="abilita_modifica()" id="abilita_modifica_button">Abilita modifica</button></th>
+                    <th class="admin-action"><button class="products-login" onclick="abilita_modifica()"
+                            id="abilita_modifica_button">Abilita modifica</button></th>
                 </tr>
             </thead>
             <tbody id="table-b"></tbody>
@@ -50,27 +51,30 @@ sessione del carrello:
     <script>
         async function onstart() {
             while (true) {
-                try{
-                    pr = products()
-        
-                    let active = await checkSession()
-                    let username = localStorage.getItem(`${get_domain()}-username`)
-                    document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${username}` : "You are not logged in")
-                    
-                    await pr
-                    for (const el of document.getElementsByClassName("active-session-action")) {
-                        el.hidden = !active
+                try {
+                    if (!modifica_attiva) {
+
+                        pr = products()
+
+                        let active = await checkSession()
+                        let username = localStorage.getItem(`${get_domain()}-username`)
+                        document.getElementById("you-are").innerHTML = (active ? `Benvenuto, ${username}` : "You are not logged in")
+
+                        await pr
+                        for (const el of document.getElementsByClassName("active-session-action")) {
+                            el.hidden = !active
+                        }
+                        for (const el of document.getElementsByClassName("inactive-session-action")) {
+                            el.hidden = active
+                        }
+
+                        let admin = await checkAdmin()
+
+                        for (const el of document.getElementsByClassName("admin-action")) {
+                            el.hidden = !admin
+                        }
                     }
-                    for (const el of document.getElementsByClassName("inactive-session-action")) {
-                        el.hidden = active
-                    }
-        
-                    let admin = await checkAdmin()
-                    
-                    for (const el of document.getElementsByClassName("admin-action")) {
-                        el.hidden = !admin
-                    }
-                } catch {}
+                } catch { }
                 await sleep(10000)
             }
         }
