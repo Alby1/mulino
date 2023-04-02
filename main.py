@@ -412,6 +412,18 @@ class DB_Service():
         s.close()
         return f.all()
     
+    def get_fatture_by_user_user(self, user) -> list[Fattura]:
+        s = self.session()
+        ret = False
+        try:
+            f = s.query(self.Fattura).filter(self.Fattura.user == user)
+            
+            ret = f.all()
+        except Exception as e: pass
+        finally: 
+            s.close()
+            return ret
+    
     def get_fatture_prodotti_by_fattura_id(self, id) -> list[FatturaProdotto]:
         s = self.session()
         ret = False
@@ -606,10 +618,16 @@ async def admin():
 @app.get("/api/fatture")
 async def all_fatture(token):
     global db
-    if(not API.is_user_admin(db, token)):
-        return json.dumps([{"user" : "YOU ARE NOT", "oggetti": [{"nome": "", "count" : 0, "unitario" : 0}], "address" : "ADMIN"}])
+    fatture = False
+    if(API.is_user_admin(db, token)):
+        fatture = db.get_fatture()
+    else:
+        try:
+            fatture = db.get_fatture_by_user_user(db.get_user_by_token(token).user)
+        except: pass
 
-    fatture = db.get_fatture()
+    if(fatture == False): return json.dumps([{"user" : "YOU ARE NOT", "oggetti": [{"nome": "", "count" : 0, "unitario" : 0}], "address" : "logged in"}])
+    if(fatture == []): return json.dumps([{"user" : "Non hai mai", "oggetti": [{"nome": "", "count" : 0, "unitario" : 0}], "address" : "fatto acquisti"}])
     ret = []
     for r in fatture:
         fp = db.get_fatture_prodotti_by_fattura_id(r.id)

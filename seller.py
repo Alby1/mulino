@@ -31,6 +31,8 @@ import random
 
 import string
 
+import urllib
+
 
 class AlchemyEncoder(json.JSONEncoder):
 
@@ -180,9 +182,11 @@ async def all_fatture(token):
     if(API.is_user_admin(db, token)):
         fatture = db.get_fatture()
     else:
-        fatture = db.get_fatture_by_user_id(db.get_user_by_token(token))
+        fatture = db.get_fatture_by_user_user(db.get_user_by_token(token).user)
 
     ret = []
+    if(fatture == False): return json.dumps([{"user" : "YOU ARE NOT", "oggetti": [{"nome": "", "count" : 0, "unitario" : 0}], "address" : "logged in"}])
+    if(fatture == []): return json.dumps([{"user" : "Non hai mai", "oggetti": [{"nome": "", "count" : 0, "unitario" : 0}], "address" : "fatto acquisti"}])
     for r in fatture:
         fp = db.get_fatture_prodotti_by_fattura_id(r.id)
         fpj = []
@@ -203,7 +207,7 @@ def all_users(token : str):
     global db
     if(API.is_user_admin(db, token)):
         return json.dumps(db.get_users(), cls=AlchemyEncoder) 
-    return json.dumps([{"user" : "YOU ARE NOT", "admin" : True}])
+    return json.dumps([{"user" : "YOU ARE NOT", "admin" : True, "id": 0}])
 
 @app.post("/api/users/login")
 async def api_users_login(login: API.Login):
@@ -447,14 +451,14 @@ class DB_Service():
         s.close()
         return f.all()
     
-    def get_fatture_by_user_id(self, user_id) -> list[Fattura]:
+    def get_fatture_by_user_user(self, user) -> list[Fattura]:
         s = self.session()
         ret = False
         try:
-            us : self.Utente = s.query(self.Utente.id == user_id).first()
-            f = s.query(self.Fattura).filter(self.Fattura.user == us.user)
+            f = s.query(self.Fattura).filter(self.Fattura.user == user)
+            
             ret = f.all()
-        except: pass
+        except Exception as e: pass
         finally: 
             s.close()
             return ret
@@ -490,6 +494,7 @@ class DB_Service():
     def add_user(self, user, password, admin):
         try:
             s = self.session()
+            user = urllib.parse.unquote(user)
             u = self.Utente(user = user, password = password, admin = admin)
             s.add(u)
             s.commit()
@@ -512,7 +517,7 @@ class DB_Service():
 
         return ret
     
-    def get_user_by_token(self, token):
+    def get_user_by_token(self, token) -> Utente:
         s = self.session()
         try:
             q = s.query(self.Utente).filter(self.Utente.token == token)
@@ -526,6 +531,7 @@ class DB_Service():
         if(user.__len__() == 0): return False, "Nome utente vuoto"
         if(password.__len__() == 0): return False, "Password vuota"
         if(not db.user_exists(user)): return False, "Utente inesistente"
+        user = urllib.parse.unquote(user)
         try:
             letters = string.ascii_lowercase
             result_str = ''.join(random.choice(letters) for i in range(20))
