@@ -177,10 +177,11 @@ async def api_products_buy(products: list[API.Product]):
 @app.get("/api/fatture")
 async def all_fatture(token):
     global db
-    if(not API.is_user_admin(db, token)):
-        return json.dumps([{"user" : "YOU ARE NOT", "oggetti": [{"nome": "", "count" : 0, "unitario" : 0}], "address" : "ADMIN"}])
+    if(API.is_user_admin(db, token)):
+        fatture = db.get_fatture()
+    else:
+        fatture = db.get_fatture_by_user_id(db.get_user_by_token(token))
 
-    fatture = db.get_fatture()
     ret = []
     for r in fatture:
         fp = db.get_fatture_prodotti_by_fattura_id(r.id)
@@ -445,6 +446,18 @@ class DB_Service():
         f = s.query(self.Fattura)
         s.close()
         return f.all()
+    
+    def get_fatture_by_user_id(self, user_id) -> list[Fattura]:
+        s = self.session()
+        ret = False
+        try:
+            us : self.Utente = s.query(self.Utente.id == user_id).first()
+            f = s.query(self.Fattura).filter(self.Fattura.user == us.user)
+            ret = f.all()
+        except: pass
+        finally: 
+            s.close()
+            return ret
     
     def get_fatture_prodotti(self) -> list[FatturaProdotto]:
         s = self.session()
