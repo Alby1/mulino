@@ -516,7 +516,7 @@ async def startup():
     global db
     db = DB_Service()
     global templates
-    templates = Jinja2Templates(directory="www")
+    templates = Jinja2Templates(directory="mulino/www")
 
     global clients
     clients = []
@@ -605,15 +605,15 @@ async def index(request: Request):
 
 @app.get("/admin")
 async def admin():
-    return FileResponse("www/main-admin.html")
+    return FileResponse("mulino/www/main-admin.html")
 
 @app.get("/admin/")
 async def admin():
-    return FileResponse("www/main-admin.html")
+    return FileResponse("mulino/www/main-admin.html")
 
 @app.get("/admin/login")
 async def admin():
-    return FileResponse("www/login.html")
+    return FileResponse("mulino/www/login.html")
 
 @app.get("/api/fatture")
 async def all_fatture(token):
@@ -664,7 +664,7 @@ async def api_users_check_session(token: API.Token):
     return {"status" : "bad"}
 
 
-app.mount("/static", StaticFiles(directory="www"), name="www")
+app.mount("/static", StaticFiles(directory="mulino/www"), name="mulino/www")
 
 
 class SellerClient():
@@ -691,16 +691,16 @@ async def _reverse_proxy(request: StarletteRequest):
                     query=request.url.query.encode("utf-8"))
     
     if(nome == "favicon.ico"):
-        return FileResponse("www/favicon.png")
+        return FileResponse("mulino/www/favicon.png")
 
     if (path.__len__() == 0):
         if(nome.endswith(".js") or nome.endswith(".html") or nome.endswith(".css")):
-            return FileResponse(f"www/{nome}")
+            return FileResponse(f"mulino/www/{nome}")
         return RedirectResponse(request.url.__str__() + "/")
     
     if (nome == "admin"):
         if(path.endswith(".js") or path.endswith(".html") or path.endswith(".css")):
-            return FileResponse(f"www{path}")
+            return FileResponse(f"{path}")
 
     client = None
     for c in clients:
@@ -732,5 +732,5 @@ app.add_route("/{path:path}",
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=9400,
-                log_level="info", reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=9400,
+                log_level="info")
