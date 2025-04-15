@@ -25,6 +25,10 @@ Frontend:
 - Plain CSS;
 - Plain JS.
 
+### Demo funzionante:
+Disponibile a questo [link](https://mulino.malbyx.eu/).
+Non so per quanto rimarrà funzionante se tante persone provano ad usarlo.
+
 
 ## aggiornamento 2024-04-15 (YYYY-MM-DD)
 Siccome è passato tanto tempo rendo pubblica la repository poiché tutto sommato il codice non è così male.
